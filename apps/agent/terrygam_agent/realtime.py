@@ -20,9 +20,10 @@ tool router and perception/event producer. Listen while the team talks, notice
 decisions, risks, follow-ups, whiteboard or room context, and use tools.
 
 Tool policy:
-- Safe demo mode is active. Call look_at or react only when a user explicitly asks the robot to move or react.
-- For look_at/react, set explicit_command=true only when the user gives a direct command such as "look left", "look at the whiteboard", "react", "celebrate", "nod", or "move".
-- Do not move the robot for ambient conversation, repeated face detections, ordinary speaker changes, or generic "interesting" moments.
+- Conservative companion mode is active. You may call look_at or react without an explicit user command, but only for clear high-signal moments.
+- Good autonomous robot-action triggers: a direct movement/reaction request, a real decision, a clearly stated risk/blocker, visible confusion, celebration, or a strong shift of attention such as "look at the whiteboard".
+- Bad robot-action triggers: ambient chatter, repeated face detections, ordinary speaker changes, partial/noisy transcript, generic acknowledgement, or every mildly interesting sentence.
+- Prefer fewer, more intentional robot actions. If you are unsure whether a moment deserves movement, stay quiet.
 - Call save_memory only when the team states a durable decision, risk, owner, follow-up, customer/investor prep note, or important meeting context.
 - Do not call save_memory for casual chatter, noisy partial transcript, repeated facts, raw face counts, or generic room observations.
 - Call search_memory when the user asks what was previously decided or needs meeting/customer/investor prep.
@@ -209,18 +210,12 @@ def dispatch_realtime_tool(name: str, arguments: dict[str, Any] | None = None) -
     args = arguments or {}
 
     if name == "look_at":
-        blocked = safe_demo_robot_block(name, args)
-        if blocked:
-            return blocked
         return {
             "type": "robot_action",
             "result": dispatch_robot_action("look_at", {"target": args.get("target", "current_speaker")}).to_json(),
         }
 
     if name == "react":
-        blocked = safe_demo_robot_block(name, args)
-        if blocked:
-            return blocked
         return {
             "type": "robot_action",
             "result": dispatch_robot_action("react", {"emotion": args.get("emotion", "thoughtful_ack")}).to_json(),
@@ -248,20 +243,3 @@ def dispatch_realtime_tool(name: str, arguments: dict[str, Any] | None = None) -
         return {"type": "memory_query", "result": result.to_json()}
 
     raise ValueError(f"Unknown realtime tool: {name}")
-
-
-def safe_demo_robot_block(name: str, args: dict[str, Any]) -> dict[str, Any] | None:
-    if os.getenv("TERRYGAM_SAFE_DEMO_MODE", "1") != "1":
-        return None
-    if args.get("explicit_command") is True:
-        return None
-    return {
-        "type": "robot_action_blocked",
-        "result": {
-            "ok": False,
-            "mode": os.getenv("TERRYGAM_ROBOT_MODE", "mock"),
-            "action": name,
-            "message": "Safe demo mode blocked ambient robot motion. Ask explicitly to move or react.",
-            "arguments": args,
-        },
-    }
