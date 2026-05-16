@@ -1,0 +1,99 @@
+{
+  "sessionId": "demo-pricing-debate",
+  "title": "Founder pricing debate",
+  "events": [
+    {
+      "atMs": 300,
+      "type": "gaze",
+      "target": "person_left"
+    },
+    {
+      "atMs": 700,
+      "type": "transcript",
+      "speaker": "Person 1",
+      "text": "If we pitch this as a team memory product, pricing has to feel founder-friendly first."
+    },
+    {
+      "atMs": 1500,
+      "type": "context",
+      "kind": "Theme",
+      "text": "Positioning: physical context layer for small teams, not generic meeting recorder."
+    },
+    {
+      "atMs": 1800,
+      "type": "reaction",
+      "text": "insight detected"
+    },
+    {
+      "atMs": 2200,
+      "type": "gaze",
+      "target": "current_speaker"
+    },
+    {
+      "atMs": 2600,
+      "type": "transcript",
+      "speaker": "Person 2",
+      "text": "I like $99 a month for the founder plan, but enterprise buyers will ask how we handle trust and retention."
+    },
+    {
+      "atMs": 3600,
+      "type": "context",
+      "kind": "Risk",
+      "text": "Enterprise trust, retention controls, and privacy posture need clear answers."
+    },
+    {
+      "atMs": 3900,
+      "type": "reaction",
+      "text": "risk surfaced"
+    },
+    {
+      "atMs": 4500,
+      "type": "gaze",
+      "target": "whiteboard"
+    },
+    {
+      "atMs": 5000,
+      "type": "context",
+      "kind": "Whiteboard",
+      "text": "Visible notes: $99/mo founder plan, enterprise trust risk, demo Friday."
+    },
+    {
+      "atMs": 5900,
+      "type": "memory_write",
+      "payload": {
+        "type": "decision",
+        "source": "physical_room",
+        "session_id": "demo-pricing-debate",
+        "text": "Team agreed to test a $99/mo founder plan first.",
+        "tags": ["pricing", "founder-plan", "investor-prep"]
+      }
+    },
+    {
+      "atMs": 6900,
+      "type": "memory_write",
+      "payload": {
+        "type": "risk",
+        "source": "physical_room",
+        "session_id": "demo-pricing-debate",
+        "text": "Enterprise buyers may require stronger trust, privacy, and retention controls.",
+        "tags": ["enterprise", "trust", "privacy"]
+      }
+    },
+    {
+      "atMs": 7900,
+      "type": "memory_write",
+      "payload": {
+        "type": "whiteboard_observation",
+        "source": "robot_camera",
+        "session_id": "demo-pricing-debate",
+        "text": "Whiteboard captured demo Friday, $99/mo founder plan, and enterprise trust risk.",
+        "tags": ["whiteboard", "demo", "pricing"]
+      }
+    },
+    {
+      "atMs": 9200,
+      "type": "retrieval_answer",
+      "text": "For the investor meeting: the team chose to test a $99/mo founder plan because the first wedge is small teams that need physical-room memory. The unresolved risk is enterprise trust: retention, privacy posture, and buyer confidence need crisp answers. The whiteboard also flagged demo Friday as the next proof point."
+    }
+  ]
+}

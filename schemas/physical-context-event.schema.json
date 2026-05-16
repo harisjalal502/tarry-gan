@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://terrygam.local/schemas/physical-context-event.schema.json",
+  "title": "PhysicalContextEvent",
+  "type": "object",
+  "required": ["id", "type", "source", "text", "timestamp", "session_id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable event id."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "transcript",
+        "context",
+        "decision",
+        "risk",
+        "question",
+        "follow_up",
+        "whiteboard_observation",
+        "face_detection",
+        "gaze",
+        "attention",
+        "reaction",
+        "audio_signal",
+        "scene_summary",
+        "memory_write",
+        "retrieval_answer"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "robot_camera",
+        "robot_microphone",
+        "browser_microphone",
+        "manual",
+        "replay",
+        "physical_room",
+        "robot",
+        "gbrain"
+      ]
+    },
+    "text": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "speaker": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TerryGam Office Context Layer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Reachy's Brain View</p>
+          <h1>TerryGam turns the office into searchable memory.</h1>
+          <p class="subtitle">
+            Replay mode shows the product spine: vision, audio, embodied
+            reactions, context extraction, memory writes, and retrieval.
+          </p>
+        </div>
+        <div class="controls">
+          <button id="reachyButton" type="button">Start Reachy Camera</button>
+          <button id="liveButton" type="button" class="secondary">Start Laptop Vision</button>
+          <button id="stopLiveButton" type="button" class="secondary">Stop Vision</button>
+          <button id="replayButton" type="button">Replay Demo</button>
+          <button id="resetButton" type="button" class="secondary">Reset</button>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel camera-panel">
+          <div class="panel-header">
+            <span>Robot Camera</span>
+            <strong id="cameraStatus">Replay idle</strong>
+          </div>
+          <div class="camera-stage" id="cameraStage">
+            <video id="cameraVideo" class="camera-video" autoplay muted playsinline></video>
+            <div id="faceOverlay" class="face-overlay" aria-label="Face detection overlay"></div>
+            <div class="whiteboard">
+              <span>WHITEBOARD</span>
+              <p>$99/mo founder plan</p>
+              <p>Risk: enterprise trust</p>
+              <p>Demo Friday</p>
+            </div>
+            <div class="person left" id="faceA">
+              <span>Person detected</span>
+            </div>
+            <div class="person right" id="faceB">
+              <span>Current speaker</span>
+            </div>
+            <div class="gaze" id="gaze">Reachy gaze: center</div>
+            <div class="reaction" id="reaction">Reaction: observing</div>
+            <div class="vision-readout" id="visionReadout">Vision source: replay</div>
+          </div>
+        </article>
+
+        <article class="panel transcript-panel">
+          <div class="panel-header">
+            <span>Live Transcript</span>
+            <strong id="transcriptStatus">0 lines</strong>
+          </div>
+          <div class="scroll" id="transcript"></div>
+        </article>
+
+        <article class="panel context-panel">
+          <div class="panel-header">
+            <span>Context Cards</span>
+            <strong id="contextStatus">0 extracted</strong>
+          </div>
+          <div class="cards" id="contextCards"></div>
+        </article>
+
+        <article class="panel memory-panel">
+          <div class="panel-header">
+            <span>GBrain Memory Writes</span>
+            <strong id="memoryStatus">adapter pending</strong>
+          </div>
+          <div class="scroll ledger" id="memoryLedger"></div>
+        </article>
+
+        <article class="panel retrieval-panel">
+          <div class="panel-header">
+            <span>Meeting Prep Retrieval</span>
+            <strong>demo query</strong>
+          </div>
+          <div class="query">
+            <p class="query-label">Teammate asks:</p>
+            <p>"Prep me for the investor meeting. What did we decide about pricing and what risks are unresolved?"</p>
+          </div>
+          <div class="answer" id="answer">
+            Replay the demo to generate a memory-backed answer.
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
