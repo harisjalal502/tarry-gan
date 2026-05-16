@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .agent import run_agent
-from .memory import write_live_session_memory
+from .memory import query_memory, write_live_session_memory
 from .models import TranscriptTurn
 from .robot import dispatch_robot_action, dispatch_robot_tool_intent
 from .transcription import DIARIZE_MODEL, transcribe_diarized_audio
@@ -59,6 +59,10 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
 
         if self.path == "/agent/audio-turn":
             self._handle_audio_turn()
+            return
+
+        if self.path == "/agent/query-memory":
+            self._handle_query_memory()
             return
 
         if self.path == "/agent/turn":
@@ -147,6 +151,20 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
             payload = self._read_json()
             result = dispatch_robot_action(action, payload)
             self._send_json(result.to_json(), status=200 if result.ok else 409)
+        except Exception as error:
+            self._send_json({"error": str(error)}, status=500)
+
+    def _handle_query_memory(self) -> None:
+        try:
+            payload = self._read_json()
+            query = str(payload.get("query") or "").strip()
+            source = str(payload.get("source") or "tarry-office")
+            limit = int(payload.get("limit") or 5)
+            if not query:
+                self._send_json({"error": "query is required"}, status=400)
+                return
+            result = query_memory(query, source=source, limit=limit)
+            self._send_json(result.to_json())
         except Exception as error:
             self._send_json({"error": str(error)}, status=500)
 

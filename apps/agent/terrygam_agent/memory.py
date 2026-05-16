@@ -44,6 +44,42 @@ class MemoryWriteResult:
         }
 
 
+@dataclass(frozen=True)
+class MemorySearchMatch:
+    slug: str
+    snippet: str
+    score: float | None = None
+    source: str = SOURCE_ID
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "slug": self.slug,
+            "snippet": self.snippet,
+            "score": self.score,
+            "source": self.source,
+        }
+
+
+@dataclass(frozen=True)
+class MemoryQueryResult:
+    mode: str
+    query: str
+    answer: str
+    matches: tuple[MemorySearchMatch, ...]
+    source: str = SOURCE_ID
+    error: str | None = None
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "mode": self.mode,
+            "query": self.query,
+            "answer": self.answer,
+            "matches": [match.to_json() for match in self.matches],
+            "source": self.source,
+            "error": self.error,
+        }
+
+
 def write_live_session_memory(
     *,
     session_id: str,
@@ -178,3 +214,130 @@ def readable_summary(summary: str) -> str:
     if isinstance(payload, dict) and isinstance(payload.get("summary"), str):
         return payload["summary"]
     return summary
+
+
+def query_memory(query: str, *, limit: int = 5, source: str = SOURCE_ID) -> MemoryQueryResult:
+    query = query.strip()
+    if not query:
+        raise ValueError("query is required")
+
+    try:
+        matches = gbrain_search(query, limit=limit, source=source)
+        if matches:
+            return MemoryQueryResult(
+                mode="gbrain",
+                query=query,
+                answer=build_retrieval_answer(query, matches),
+                matches=tuple(matches),
+                source=source,
+            )
+    except Exception as error:
+        fallback_matches = local_search(query, limit=limit, source=source)
+        return MemoryQueryResult(
+            mode="local_fallback",
+            query=query,
+            answer=build_retrieval_answer(query, fallback_matches),
+            matches=tuple(fallback_matches),
+            source=source,
+            error=str(error),
+        )
+
+    fallback_matches = local_search(query, limit=limit, source=source)
+    return MemoryQueryResult(
+        mode="local_fallback",
+        query=query,
+        answer=build_retrieval_answer(query, fallback_matches),
+        matches=tuple(fallback_matches),
+        source=source,
+        error="GBrain search returned no matches.",
+    )
+
+
+def gbrain_search(query: str, *, limit: int, source: str) -> list[MemorySearchMatch]:
+    env = os.environ.copy()
+    env.setdefault("GBRAIN_HOME", str(REPO_ROOT / ".gbrain-home"))
+    result = subprocess.run(
+        ["gbrain", "search", query, "--source", source],
+        text=True,
+        capture_output=True,
+        cwd=REPO_ROOT,
+        env=env,
+        timeout=20,
+        check=False,
+    )
+    if result.returncode != 0:
+        message = (result.stderr or result.stdout or "gbrain search failed").strip()
+        raise RuntimeError(message)
+    return parse_gbrain_search_output(result.stdout, source=source)[:limit]
+
+
+def parse_gbrain_search_output(output: str, *, source: str) -> list[MemorySearchMatch]:
+    matches: list[MemorySearchMatch] = []
+    for line in output.splitlines():
+        match = re.match(r"^\[(?P<score>[0-9.]+)\]\s+(?P<slug>\S+)\s+--\s+(?P<snippet>.*)$", line.strip())
+        if not match:
+            continue
+        matches.append(
+            MemorySearchMatch(
+                slug=match.group("slug"),
+                snippet=match.group("snippet").strip(),
+                score=float(match.group("score")),
+                source=source,
+            )
+        )
+    return matches
+
+
+def local_search(query: str, *, limit: int, source: str) -> list[MemorySearchMatch]:
+    terms = [term for term in re.findall(r"[a-z0-9]+", query.lower()) if len(term) > 2]
+    candidates: list[tuple[int, MemorySearchMatch]] = []
+    for path in sorted(BRAIN_ROOT.glob("**/*.md")):
+        if path.name in {"README.md", "RESOLVER.md", "schema.md"}:
+            continue
+        content = path.read_text(encoding="utf-8", errors="replace")
+        content_lower = content.lower()
+        score = sum(content_lower.count(term) for term in terms)
+        if score <= 0:
+            continue
+        slug = str(path.relative_to(BRAIN_ROOT)).removesuffix(".md")
+        candidates.append(
+            (
+                score,
+                MemorySearchMatch(
+                    slug=slug,
+                    snippet=best_snippet(content, terms),
+                    score=float(score),
+                    source=source,
+                ),
+            )
+        )
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return [match for _, match in candidates[:limit]]
+
+
+def best_snippet(content: str, terms: list[str], max_length: int = 220) -> str:
+    flattened = re.sub(r"\s+", " ", content).strip()
+    if not flattened:
+        return ""
+    lower = flattened.lower()
+    index = min((lower.find(term) for term in terms if lower.find(term) >= 0), default=0)
+    start = max(0, index - 70)
+    snippet = flattened[start : start + max_length].strip()
+    return snippet
+
+
+def build_retrieval_answer(query: str, matches: list[MemorySearchMatch]) -> str:
+    if not matches:
+        return f"No saved Tarry room memories matched: {query}"
+
+    best = matches[0]
+    source_list = ", ".join(match.slug for match in matches[:3])
+    snippet = best.snippet.strip()
+    if len(snippet) > 320:
+        snippet = f"{snippet[:317]}..."
+    return (
+        f"Tarry found {len(matches)} relevant memory page(s). "
+        f"Best match: {best.slug}. "
+        f"Relevant context: {snippet} "
+        f"Sources: {source_list}."
+    )
