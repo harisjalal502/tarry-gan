@@ -22,7 +22,7 @@ Source: https://docs.zeroentropy.dev/models
 
 ZeroEntropy also provides `zerank-2`, a reranker that can reorder candidate documents after initial retrieval. This is not the same as embeddings. It is a second retrieval-quality layer.
 
-For TerryGam, the clean order is:
+For Tarry, the clean order is:
 
 1. Start with `zembed-1` embeddings.
 2. Once we have enough pages and queries, enable `zerank-2` reranking if retrieval quality needs a boost.

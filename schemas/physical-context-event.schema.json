@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://terrygam.local/schemas/physical-context-event.schema.json",
+  "$id": "https://tarry.local/schemas/physical-context-event.schema.json",
   "title": "PhysicalContextEvent",
   "type": "object",
   "required": ["id", "type", "source", "text", "timestamp", "session_id"],

@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 source scripts/gbrain-env.sh
 ensure_project_gbrain
 
-SOURCE_ID="terrygam-office"
+SOURCE_ID="tarry-office"
 SLUG="meetings/demo-pricing-debate"
 
 echo "1. Sync generated brain page into GBrain"

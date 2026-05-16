@@ -15,10 +15,15 @@ ensure_project_gbrain
 node scripts/materialize-replay-brain.mjs
 
 BRAIN_PATH="$(pwd)/brain"
-SOURCE_ID="terrygam-office"
+SOURCE_ID="tarry-office"
+LEGACY_SOURCE_ID="terrygam-office"
+
+if gbrain sources list --json | grep -q "\"id\": \"${LEGACY_SOURCE_ID}\""; then
+  gbrain sources remove "${LEGACY_SOURCE_ID}" --yes --confirm-destructive >/dev/null
+fi
 
 if ! gbrain sources list --json | grep -q "\"id\": \"${SOURCE_ID}\""; then
-  gbrain sources add "${SOURCE_ID}" --path "${BRAIN_PATH}" --name "TerryGam Office" --federated
+  gbrain sources add "${SOURCE_ID}" --path "${BRAIN_PATH}" --name "Tarry Office" --federated
 fi
 
 # `gbrain sync` expects the source path itself to be a git repo. Our generated

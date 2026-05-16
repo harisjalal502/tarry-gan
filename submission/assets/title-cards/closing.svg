@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="glow" cx="70%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#f1c36b" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#070706" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="#070706"/>
+  <rect width="1920" height="1080" fill="url(#glow)"/>
+  <text x="160" y="470" fill="#f4efe3" font-family="Georgia, serif" font-size="126" letter-spacing="-4">Tarry</text>
+  <text x="166" y="555" fill="#d7c8a7" font-family="Georgia, serif" font-size="46">The physical context layer for teams.</text>
+  <text x="166" y="875" fill="#8d8475" font-family="Menlo, monospace" font-size="28">Every team has a digital brain. Tarry gives the office a memory.</text>
+</svg>

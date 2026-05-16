@@ -1,6 +1,6 @@
 # Hermes And OpenClaw Notes
 
-This doc tracks whether Hermes Agent or OpenClaw should become part of TerryGam.
+This doc tracks whether Hermes Agent or OpenClaw should become part of Tarry.
 
 Local source inspected:
 
@@ -33,14 +33,14 @@ Relevant sources:
 - https://github.com/openclaw/openclaw
 - https://openclawdoc.com/
 
-## What They Would Give TerryGam
+## What They Would Give Tarry
 
 Hermes could give us:
 
 - A persistent agent shell that learns workflows over time.
 - Skill creation/self-improvement patterns to study.
 - Scheduled recaps and automations.
-- A messaging gateway so the team can talk to TerryGam from Telegram, Slack, etc.
+- A messaging gateway so the team can talk to Tarry from Telegram, Slack, etc.
 - Another memory architecture to compare against GBrain.
 
 OpenClaw could give us:
@@ -75,7 +75,7 @@ Our stack should stay:
 - Dashboard: Reachy's visible brain.
 - GStack: coding/agent workflow support.
 
-Hermes/OpenClaw are optional outer shells. If we add one later, it should wrap TerryGam, not replace the product core.
+Hermes/OpenClaw are optional outer shells. If we add one later, it should wrap Tarry, not replace the product core.
 
 ## Decision
 
@@ -89,12 +89,12 @@ Use Hermes/OpenClaw as design references for:
 - Scheduled office summaries.
 - Safety and permission boundaries.
 
-Only set one up if we explicitly decide that the demo needs "talk to TerryGam from Slack/Telegram" or "agent runs continuously as a remote assistant". That is not the current demo-critical path.
+Only set one up if we explicitly decide that the demo needs "talk to Tarry from Slack/Telegram" or "agent runs continuously as a remote assistant". That is not the current demo-critical path.
 
 ## Later Evaluation Questions
 
 - Can GBrain be exposed as a Hermes/OpenClaw skill without duplicating memory?
-- Can TerryGam events be routed into an agent gateway cleanly?
+- Can Tarry events be routed into an agent gateway cleanly?
 - Does either platform provide a better long-running daemon model than our own app?
 - Does the extra operational/security complexity help the demo enough to justify it?
 - Are their memory abstractions meaningfully better than GBrain for physical-room context?

@@ -1,6 +1,6 @@
-# TerryGam Office Brain Resolver
+# Tarry Office Brain Resolver
 
-This brain source stores physical-room context captured by TerryGam.
+This brain source stores physical-room context captured by Tarry.
 
 ## Filing Rules
 

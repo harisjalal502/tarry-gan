@@ -16,7 +16,7 @@ External docs checked:
 
 ## The Product Requirement
 
-TerryGam needs a transcript that can separate people in the room. The dashboard should show:
+Tarry needs a transcript that can separate people in the room. The dashboard should show:
 
 - What was said.
 - Who said it, at least as `Person 1`, `Person 2`, etc.
@@ -110,7 +110,7 @@ Tradeoffs:
 
 ### Wispr Flow
 
-Wispr Flow appears to be a user-facing dictation product, not the right backend transcription API for TerryGam. It may be useful for personal dictation workflows, but it should not be in the core architecture unless we find a real developer API and speaker diarization support.
+Wispr Flow appears to be a user-facing dictation product, not the right backend transcription API for Tarry. It may be useful for personal dictation workflows, but it should not be in the core architecture unless we find a real developer API and speaker diarization support.
 
 ## Speaker Identity Strategy
 

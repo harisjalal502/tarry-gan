@@ -1,7 +1,7 @@
 ---
 title: "Founder pricing debate - physical context session"
 type: "meeting"
-source: "terrygam-office"
+source: "tarry-office"
 session_id: "demo-pricing-debate"
 date: "2026-05-16"
 tags: ["terrygam", "physical-context", "office-memory", "replay"]
@@ -9,18 +9,18 @@ tags: ["terrygam", "physical-context", "office-memory", "replay"]
 
 # Founder pricing debate - 2026-05-16
 
-> Executive summary: This session demonstrates TerryGam's physical-context loop: room audio, robot attention, visual whiteboard observations, and structured memory writes.
+> Executive summary: This session demonstrates Tarry's physical-context loop: room audio, robot attention, visual whiteboard observations, and structured memory writes.
 
 ## State
 
-- **Capture mode:** Replay seed for the TerryGam office companion.
+- **Capture mode:** Replay seed for the Tarry office companion.
 - **Physical layers:** Vision, audio, and embodied robot reactions.
-- **Memory target:** GBrain source `terrygam-office`.
+- **Memory target:** GBrain source `tarry-office`.
 - **Raw event ledger:** [demo-pricing-debate.events.jsonl](../sources/physical-room/demo-pricing-debate.events.jsonl)
 
 ## Summary
 
-- This session demonstrates TerryGam's physical-context loop: room audio, robot attention, visual whiteboard observations, and structured memory writes.
+- This session demonstrates Tarry's physical-context loop: room audio, robot attention, visual whiteboard observations, and structured memory writes.
 - The team aligned around a founder-friendly pricing test while surfacing enterprise trust as the main unresolved risk.
 - The whiteboard captured the same decision/risk shape plus a demo-Friday proof point.
 
@@ -66,4 +66,4 @@ tags: ["terrygam", "physical-context", "office-memory", "replay"]
 
 ## Timeline
 
-- **2026-05-16** | TerryGam replay session - Captured a small-team pricing debate with speaker-separated transcript, context cards, robot attention, and memory-write events. [Source: TerryGam replay, 2026-05-16]
+- **2026-05-16** | Tarry replay session - Captured a small-team pricing debate with speaker-separated transcript, context cards, robot attention, and memory-write events. [Source: Tarry replay, 2026-05-16]

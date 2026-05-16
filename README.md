@@ -1,6 +1,6 @@
-# TerryGam Office Context Layer
+# Tarry Office Context Layer
 
-TerryGam is a Reachy Mini-powered physical context layer for small teams. Digital tools capture Slack, docs, GitHub, and calendar. TerryGam captures what normally disappears from the office: debates, whiteboard changes, customer-call prep, verbal decisions, room signals, and physical context.
+Tarry is a Reachy Mini-powered physical context layer for small teams. Digital tools capture Slack, docs, GitHub, and calendar. Tarry captures what normally disappears from the office: debates, whiteboard changes, customer-call prep, verbal decisions, room signals, and physical context.
 
 The hackathon goal is a compelling under-two-minute demo where Reachy Mini listens, looks around, tracks people/whiteboards, stores structured context through GBrain, and later helps the team prepare using memories from the physical room.
 
@@ -8,7 +8,7 @@ The hackathon goal is a compelling under-two-minute demo where Reachy Mini liste
 
 Small teams lose their most important context in the room.
 
-TerryGam turns the office into searchable memory.
+Tarry turns the office into searchable memory.
 
 ## MVP Loop
 
@@ -16,11 +16,11 @@ TerryGam turns the office into searchable memory.
 2. Reachy Mini listens, looks, and reacts to the room.
 3. The dashboard shows Reachy's brain: camera view, face boxes, room/context detections, transcript, and extracted decisions.
 4. The app writes structured physical-context events into the memory layer.
-5. Later, a teammate asks for investor/customer prep and TerryGam retrieves the relevant context through GBrain.
+5. Later, a teammate asks for investor/customer prep and Tarry retrieves the relevant context through GBrain.
 
 ## Physical Layers
 
-TerryGam adds three physical layers that normal digital context tools miss:
+Tarry adds three physical layers that normal digital context tools miss:
 
 - Vision: images, people, whiteboards, screens, objects, and spatial attention.
 - Audio: spoken discussion, interruptions, emphasis, and exact phrasing.

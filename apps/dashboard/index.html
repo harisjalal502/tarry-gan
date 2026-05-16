@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TerryGam Office Context Layer</title>
+    <title>Tarry Office Context Layer</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -11,7 +11,7 @@
       <section class="hero">
         <div>
           <p class="eyebrow">Reachy's Brain View</p>
-          <h1>TerryGam turns the office into searchable memory.</h1>
+          <h1>Tarry turns the office into searchable memory.</h1>
           <p class="subtitle">
             Replay mode shows the product spine: vision, audio, embodied
             reactions, context extraction, memory writes, and retrieval.
@@ -21,6 +21,8 @@
           <button id="reachyButton" type="button">Start Reachy Camera</button>
           <button id="liveButton" type="button" class="secondary">Start Laptop Vision</button>
           <button id="stopLiveButton" type="button" class="secondary">Stop Vision</button>
+          <button id="micButton" type="button">Start Mic Agent</button>
+          <button id="stopMicButton" type="button" class="secondary">Stop Mic</button>
           <button id="replayButton" type="button">Replay Demo</button>
           <button id="resetButton" type="button" class="secondary">Reset</button>
         </div>
@@ -58,6 +60,11 @@
             <span>Live Transcript</span>
             <strong id="transcriptStatus">0 lines</strong>
           </div>
+          <form class="agent-input" id="agentInputForm">
+            <input id="agentTextInput" type="text" placeholder="Say or type: let's ship the pricing test Friday" />
+            <button type="submit" class="secondary">Send to Agent</button>
+          </form>
+          <div class="agent-status" id="agentStatus">Agent service idle</div>
           <div class="scroll" id="transcript"></div>
         </article>
 

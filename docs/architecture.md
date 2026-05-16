@@ -2,7 +2,7 @@
 
 ## System Shape
 
-TerryGam has six layers:
+Tarry has six layers:
 
 1. Robot layer: Reachy Mini camera, head movement, speaker output, and eventually robot microphone.
 2. Perception layer: face detection, speaker tracking, whiteboard detection/OCR, and scene summaries.
@@ -118,7 +118,7 @@ For this project, `GMemory` should mean our adapter/domain layer around GBrain-b
 The likely first source is:
 
 ```bash
-gbrain sources add terrygam-office --path ./brain --name "TerryGam Office" --federated
+gbrain sources add tarry-office --path ./brain --name "Tarry Office" --federated
 ```
 
 Physical-room events should become GBrain-compatible meeting pages, voice-note pages, timeline entries, and typed links.

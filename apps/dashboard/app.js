@@ -5,6 +5,7 @@ const FACE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_det
 const GST_WEBRTC_SCRIPT_URL = "./vendor/gstwebrtc-api-2.0.0.min.js";
 const REACHY_SIGNALING_PORT = 8443;
 const REACHY_SIGNALING_HOSTS = ["127.0.0.1", "localhost"];
+const AGENT_API_URL = "http://127.0.0.1:8787/agent/turn";
 
 const state = {
   session: null,
@@ -25,14 +26,26 @@ const state = {
     lastFaceCount: null,
     lastObservationAt: 0,
   },
+  agent: {
+    recognition: null,
+    listening: false,
+    speakerIndex: 1,
+    sessionId: `live-room-${new Date().toISOString().slice(0, 10)}`,
+    lastEventIds: new Set(),
+  },
 };
 
 const els = {
   reachyButton: document.querySelector("#reachyButton"),
   liveButton: document.querySelector("#liveButton"),
   stopLiveButton: document.querySelector("#stopLiveButton"),
+  micButton: document.querySelector("#micButton"),
+  stopMicButton: document.querySelector("#stopMicButton"),
   replayButton: document.querySelector("#replayButton"),
   resetButton: document.querySelector("#resetButton"),
+  agentInputForm: document.querySelector("#agentInputForm"),
+  agentTextInput: document.querySelector("#agentTextInput"),
+  agentStatus: document.querySelector("#agentStatus"),
   cameraStage: document.querySelector("#cameraStage"),
   cameraVideo: document.querySelector("#cameraVideo"),
   faceOverlay: document.querySelector("#faceOverlay"),
@@ -69,9 +82,11 @@ function clearTimers() {
 function reset() {
   clearTimers();
   stopLiveVision({ resetStatus: false });
+  stopMicAgent({ updateStatus: false });
   state.transcriptCount = 0;
   state.contextCount = 0;
   state.memoryCount = 0;
+  state.agent.lastEventIds = new Set();
   state.liveVision.lastFaceCount = null;
   state.liveVision.lastObservationAt = 0;
   els.transcript.innerHTML = "";
@@ -81,10 +96,158 @@ function reset() {
   els.transcriptStatus.textContent = "0 lines";
   els.contextStatus.textContent = "0 extracted";
   els.memoryStatus.textContent = "adapter pending";
+  els.agentStatus.textContent = "Agent service idle";
   els.answer.textContent = "Replay the demo to generate a memory-backed answer.";
   els.reaction.textContent = "Reaction: observing";
   els.visionReadout.textContent = "Vision source: replay";
   setFocus("center");
+}
+
+async function startMicAgent() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    els.agentStatus.textContent = "Speech recognition unavailable here; type a line and click Send to Agent.";
+    return;
+  }
+
+  stopMicAgent({ updateStatus: false });
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  recognition.addEventListener("start", () => {
+    state.agent.listening = true;
+    setMicControls(true);
+    els.agentStatus.textContent = "Mic listening; final phrases go to the agent.";
+  });
+
+  recognition.addEventListener("result", (event) => {
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      if (!result.isFinal) continue;
+      const text = result[0]?.transcript?.trim();
+      if (text) {
+        void sendTextToAgent(text, { source: "browser_microphone" });
+      }
+    }
+  });
+
+  recognition.addEventListener("error", (event) => {
+    els.agentStatus.textContent = `Mic error: ${event.error}. Type a line as fallback.`;
+    setMicControls(false);
+  });
+
+  recognition.addEventListener("end", () => {
+    state.agent.listening = false;
+    setMicControls(false);
+    if (els.agentStatus.textContent.includes("listening")) {
+      els.agentStatus.textContent = "Mic stopped.";
+    }
+  });
+
+  state.agent.recognition = recognition;
+  recognition.start();
+}
+
+function stopMicAgent({ updateStatus = true } = {}) {
+  if (state.agent.recognition) {
+    try {
+      state.agent.recognition.stop();
+    } catch {
+      // Browser recognizers can throw if they are already stopped.
+    }
+  }
+  state.agent.recognition = null;
+  state.agent.listening = false;
+  setMicControls(false);
+  if (updateStatus) {
+    els.agentStatus.textContent = "Mic stopped.";
+  }
+}
+
+function setMicControls(listening) {
+  els.micButton.disabled = listening;
+  els.stopMicButton.disabled = !listening;
+}
+
+async function sendTextToAgent(text, options = {}) {
+  const cleanText = text.trim();
+  if (!cleanText) return;
+
+  const speaker = options.speaker ?? nextSpeakerLabel();
+  els.agentStatus.textContent = "Sending turn to OpenAI Agents SDK...";
+
+  try {
+    const response = await fetch(AGENT_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: state.agent.sessionId,
+        speaker,
+        text: cleanText,
+        source: options.source ?? "manual",
+      }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || `Agent service returned ${response.status}`);
+    }
+
+    applyAgentRun(payload);
+    els.agentStatus.textContent = `Agent ${payload.mode}: ${payload.events.length} events, ${payload.tool_intents.length} tool intents.`;
+  } catch (error) {
+    els.agentStatus.textContent = `Agent error: ${error.message}. Is npm run agent:serve running?`;
+  }
+}
+
+function nextSpeakerLabel() {
+  const speaker = `speaker_${state.agent.speakerIndex}`;
+  state.agent.speakerIndex = state.agent.speakerIndex === 1 ? 2 : 1;
+  return speaker;
+}
+
+function applyAgentRun(run) {
+  for (const event of run.events ?? []) {
+    if (state.agent.lastEventIds.has(event.id)) continue;
+    state.agent.lastEventIds.add(event.id);
+
+    if (event.type === "transcript") {
+      addTranscript(event);
+    } else if (["decision", "risk", "question", "follow_up", "context"].includes(event.type)) {
+      addContextCard({
+        kind: labelForEventType(event.type),
+        text: event.text,
+      });
+    }
+  }
+
+  for (const intent of run.tool_intents ?? []) {
+    addMemoryWrite({
+      payload: {
+        type: "agent_tool_intent",
+        tool: intent.name,
+        reason: intent.reason,
+        arguments: intent.arguments,
+        session_id: run.session_id,
+      },
+    });
+  }
+
+  if (run.summary) {
+    els.answer.textContent = run.summary;
+  }
+}
+
+function labelForEventType(type) {
+  return {
+    decision: "Decision",
+    risk: "Risk",
+    question: "Question",
+    follow_up: "Follow-up",
+    context: "Insight",
+  }[type] ?? "Context";
 }
 
 function replay() {
@@ -369,7 +532,7 @@ function connectReachyHost(host) {
     api = new GstWebRTCAPI({
       signalingServerUrl: `ws://${host}:${REACHY_SIGNALING_PORT}`,
       reconnectionTimeout: 0,
-      meta: { name: "terrygam-dashboard" },
+      meta: { name: "tarry-dashboard" },
       webrtcConfig: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
@@ -583,11 +746,14 @@ function setFocus(target) {
 function addTranscript(event) {
   state.transcriptCount += 1;
   els.transcriptStatus.textContent = `${state.transcriptCount} lines`;
+  const speaker = typeof event.speaker === "object"
+    ? event.speaker.name || event.speaker.label
+    : event.speaker;
 
   const line = document.createElement("div");
   line.className = "transcript-line";
   line.innerHTML = `
-    <span class="speaker">${escapeHtml(event.speaker)}</span>
+    <span class="speaker">${escapeHtml(speaker ?? "speaker")}</span>
     <span>${escapeHtml(event.text)}</span>
   `;
   els.transcript.append(line);
@@ -630,9 +796,18 @@ function escapeHtml(value) {
 els.reachyButton.addEventListener("click", startReachyVision);
 els.liveButton.addEventListener("click", startLiveVision);
 els.stopLiveButton.addEventListener("click", () => stopLiveVision());
+els.micButton.addEventListener("click", startMicAgent);
+els.stopMicButton.addEventListener("click", () => stopMicAgent());
+els.agentInputForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = els.agentTextInput.value;
+  els.agentTextInput.value = "";
+  void sendTextToAgent(text, { source: "manual" });
+});
 els.replayButton.addEventListener("click", replay);
 els.resetButton.addEventListener("click", reset);
 setLiveControls(false);
+setMicControls(false);
 
 loadSession().catch((error) => {
   els.cameraStatus.textContent = "Replay data error";

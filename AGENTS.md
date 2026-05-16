@@ -2,7 +2,7 @@
 
 ## Product North Star
 
-TerryGam is the physical context layer for small startup teams. The robot is not a gimmick; it is the body that lets the product capture context that never enters digital systems.
+Tarry is the physical context layer for small startup teams. The robot is not a gimmick; it is the body that lets the product capture context that never enters digital systems.
 
 ## Build Priorities
 

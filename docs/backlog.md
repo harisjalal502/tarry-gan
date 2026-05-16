@@ -21,10 +21,10 @@
 ## Phase 3 - GBrain/GMemory
 
 1. Use the local GBrain source notes in `docs/gbrain-source-research.md`.
-2. Create a `brain/` source or separate local brain path for TerryGam office context.
+2. Create a `brain/` source or separate local brain path for Tarry office context.
 3. Implement a memory adapter around the GBrain CLI first.
 4. Map replay events into GBrain-style meeting pages, voice-note pages, decisions, risks, and whiteboard observations.
-5. Run `gbrain sources add terrygam-office --path <brain-path> --federated`.
+5. Run `gbrain sources add tarry-office --path <brain-path> --federated`.
 6. Run `gbrain sync`, `gbrain embed --stale`, and `gbrain query` against the generated physical-context pages.
 7. Compare GBrain against Hermes/OpenClaw memory patterns without installing those platforms unless they become demo-critical.
 

@@ -2,7 +2,7 @@
 
 ## One-Liner
 
-TerryGam turns the physical office into searchable team memory.
+Tarry turns the physical office into searchable team memory.
 
 ## Problem
 
@@ -16,7 +16,7 @@ The first user is a small, intense startup team working in the same room. They d
 
 ## Product Promise
 
-TerryGam watches, listens, reacts, summarizes, and retrieves the physical context of a startup office.
+Tarry watches, listens, reacts, summarizes, and retrieves the physical context of a startup office.
 
 ## Why A Robot
 
@@ -24,7 +24,7 @@ The robot creates an obvious physical affordance. It can look at people, turn to
 
 ## Physical Layers
 
-TerryGam brings three non-digital context layers into the team memory system:
+Tarry brings three non-digital context layers into the team memory system:
 
 - Vision: camera frames, faces, room layout, whiteboards, screens, objects, and spatial attention.
 - Audio: speech, exact phrasing, tone, interruptions, and conversational flow.

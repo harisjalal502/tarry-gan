@@ -1,4 +1,4 @@
 # Physical Room Sources
 
-Raw TerryGam room observations, transcripts, robot attention events, and memory-write ledgers.
+Raw Tarry room observations, transcripts, robot attention events, and memory-write ledgers.
 

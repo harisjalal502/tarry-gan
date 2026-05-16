@@ -10,7 +10,7 @@ Show two teammates in a room. One says: "All our real decisions happen here, but
 
 Show Reachy Mini on the desk.
 
-Narration: "TerryGam is the physical context layer for small teams."
+Narration: "Tarry is the physical context layer for small teams."
 
 ### 0:15-0:45 - Live Capture
 
@@ -35,7 +35,7 @@ The important demo point is not perfect OCR. The important point is that physica
 
 Later, a teammate asks: "Prep me for the investor meeting. What did we decide about pricing and what risks are unresolved?"
 
-TerryGam retrieves the earlier physical context through the memory layer and answers:
+Tarry retrieves the earlier physical context through the memory layer and answers:
 
 - The agreed pricing direction.
 - The disagreement or concern.
@@ -46,7 +46,7 @@ TerryGam retrieves the earlier physical context through the memory layer and ans
 
 Show the dashboard timeline and search.
 
-Closing line: "Slack captures the digital office. TerryGam captures the room."
+Closing line: "Slack captures the digital office. Tarry captures the room."
 
 ## Demo-Safe Fallback
 

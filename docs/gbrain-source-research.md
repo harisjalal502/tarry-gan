@@ -21,7 +21,7 @@ GBrain is not just a vector store. It is a personal/team knowledge brain with:
 - Code indexing and symbol lookup.
 - Skill-driven ingestion workflows.
 
-The practical implication for TerryGam is that we should not build our own durable memory/search layer first. We should convert robot observations into GBrain-compatible pages/events and let GBrain handle retrieval, indexing, and graph structure.
+The practical implication for Tarry is that we should not build our own durable memory/search layer first. We should convert robot observations into GBrain-compatible pages/events and let GBrain handle retrieval, indexing, and graph structure.
 
 ## Install Facts
 
@@ -60,19 +60,19 @@ gbrain code-callees <symbol> --json
 
 ## Source Model
 
-GBrain has a `sources` concept. A source is a logical brain within the DB. This matters because TerryGam can be its own source instead of polluting another personal/company brain.
+GBrain has a `sources` concept. A source is a logical brain within the DB. This matters because Tarry can be its own source instead of polluting another personal/company brain.
 
 Proposed source:
 
 ```bash
-gbrain sources add terrygam-office --path ./brain --name "TerryGam Office" --federated
+gbrain sources add tarry-office --path ./brain --name "Tarry Office" --federated
 ```
 
 For the hackathon, we can keep the brain repo inside this project at `brain/` or use a separate local path. If we want clean product/research separation, use a separate path and keep this repo focused on app code.
 
-## Mapping TerryGam To GBrain
+## Mapping Tarry To GBrain
 
-TerryGam should emit physical-context events, then a memory adapter should write them into GBrain pages.
+Tarry should emit physical-context events, then a memory adapter should write them into GBrain pages.
 
 Suggested mapping:
 
@@ -108,11 +108,11 @@ GBrain does not give us the robot/perception stack. We still need:
 
 ## OpenClaw Integration Signal
 
-The GBrain repo includes `openclaw.plugin.json` and OpenClaw extension metadata in `package.json`, so OpenClaw is a supported host/plugin path. That does not mean TerryGam needs OpenClaw now. It means if we later want a multi-channel assistant shell, GBrain already knows how to plug into OpenClaw.
+The GBrain repo includes `openclaw.plugin.json` and OpenClaw extension metadata in `package.json`, so OpenClaw is a supported host/plugin path. That does not mean Tarry needs OpenClaw now. It means if we later want a multi-channel assistant shell, GBrain already knows how to plug into OpenClaw.
 
 ## Product Decision
 
 For the MVP, use GBrain directly from our app/adapter. Do not put Hermes or OpenClaw in the critical path.
 
-Later, if the product needs Slack/Telegram/always-on assistant behavior, evaluate Hermes or OpenClaw as an outer agent shell around TerryGam.
+Later, if the product needs Slack/Telegram/always-on assistant behavior, evaluate Hermes or OpenClaw as an outer agent shell around Tarry.
 

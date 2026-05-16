@@ -1,4 +1,4 @@
-# TerryGam Office Brain Schema
+# Tarry Office Brain Schema
 
 Each physical-context page should preserve:
 
