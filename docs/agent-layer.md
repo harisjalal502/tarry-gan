@@ -11,13 +11,14 @@ What exists today:
 - Reachy camera WebRTC path wired to the Reachy Mini Control local proxy, pending robot availability.
 - Debounced live `vision_observation` entries in the dashboard memory ledger.
 - GBrain source/write/search smoke tests with ZeroEntropy semantic retrieval.
+- A Python agent package at `apps/agent/` with an OpenAI Agents SDK adapter and deterministic local smoke mode.
 
 What does not exist yet:
 
 - Browser microphone capture.
 - OpenAI `gpt-4o-transcribe-diarize` integration.
-- Live LLM context extraction.
-- Tool-routing agent that decides when Reachy should look, react, speak, or save memory.
+- Live LLM context extraction against real microphone chunks.
+- Tool-routing agent connected to real Reachy and GBrain side effects.
 - Agent chat backed by live GBrain retrieval.
 
 ## Role In The Product
@@ -48,6 +49,16 @@ The agent should eventually control these tools:
 - `search_memory(query)` routes to GBrain query/search.
 
 For now, robot actions should remain explicit and visible. The dashboard should show what tool the agent would call before we let it act autonomously.
+
+## Current Agent Runtime Decision
+
+Use OpenAI Agents SDK Python for the backend agent loop because Reachy Mini control is Python-first and the robot tools should live close to the hardware adapter. Use GBrain as memory/search tools, not as the main runtime. Use Vercel AI SDK later if the dashboard becomes a full Next.js streaming UI.
+
+The current package supports:
+
+- `auto` mode: try OpenAI Agents SDK, fall back to deterministic local extraction.
+- `sdk` mode: require OpenAI Agents SDK and raise if unavailable.
+- `local` mode: deterministic extraction for smoke tests and demo-safe fallback.
 
 ## Next Build Slice
 

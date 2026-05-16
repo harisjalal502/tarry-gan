@@ -9,6 +9,7 @@
     "brain:materialize": "node scripts/materialize-replay-brain.mjs",
     "gbrain:sync": "./scripts/sync-gbrain.sh",
     "gbrain:test": "./scripts/test-gbrain.sh",
-    "verify": "node scripts/inspect-pipeline.mjs >/dev/null && node scripts/materialize-replay-brain.mjs --check && python3 -m json.tool apps/dashboard/data/demo-session.json >/dev/null && python3 -m json.tool schemas/physical-context-event.schema.json >/dev/null"
+    "verify": "node scripts/inspect-pipeline.mjs >/dev/null && node scripts/materialize-replay-brain.mjs --check && python3 -m json.tool apps/dashboard/data/demo-session.json >/dev/null && python3 -m json.tool schemas/physical-context-event.schema.json >/dev/null && ./scripts/test-agent.sh >/dev/null",
+    "agent:smoke": "./scripts/test-agent.sh"
   }
 }
