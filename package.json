@@ -11,6 +11,7 @@
     "gbrain:test": "./scripts/test-gbrain.sh",
     "agent:smoke": "./scripts/test-agent.sh",
     "agent:serve": "./scripts/run-agent.sh",
-    "verify": "node scripts/inspect-pipeline.mjs >/dev/null && node scripts/materialize-replay-brain.mjs --check && python3 -m json.tool apps/dashboard/data/demo-session.json >/dev/null && python3 -m json.tool schemas/physical-context-event.schema.json >/dev/null && ./scripts/test-agent.sh >/dev/null"
+    "robot:smoke": "./scripts/test-robot.sh",
+    "verify": "node scripts/inspect-pipeline.mjs >/dev/null && node scripts/materialize-replay-brain.mjs --check && python3 -m json.tool apps/dashboard/data/demo-session.json >/dev/null && python3 -m json.tool schemas/physical-context-event.schema.json >/dev/null && ./scripts/test-agent.sh >/dev/null && ./scripts/test-robot.sh >/dev/null"
   }
 }

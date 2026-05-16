@@ -31,7 +31,7 @@
 ## Phase 4 - Live Robot Modalities
 
 1. Reuse Reachy Mini desktop app local daemon/proxy for camera.
-2. Reuse Reachy SDK/daemon for motion.
+2. Reuse Reachy SDK/daemon for motion. Initial adapter contract is wired with `mock`, `simulation`, and gated `hardware` modes.
 3. Use robot speaker output if available.
 4. Prefer browser/local-machine mic first if direct robot mic remains unreliable.
 5. Investigate direct robot mic only after the rest of the demo works.

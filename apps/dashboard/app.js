@@ -310,6 +310,19 @@ function applyAgentRun(run) {
     });
   }
 
+  for (const action of run.robot_actions ?? []) {
+    addMemoryWrite({
+      payload: {
+        type: "robot_action",
+        ok: action.ok,
+        mode: action.mode,
+        action: action.action,
+        message: action.message,
+        arguments: action.arguments,
+      },
+    });
+  }
+
   if (run.summary) {
     els.answer.textContent = run.summary;
   }
