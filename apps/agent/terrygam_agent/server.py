@@ -12,6 +12,11 @@ from typing import Any
 from .agent import run_agent
 from .memory import query_memory, write_live_session_memory
 from .models import TranscriptTurn
+from .realtime import (
+    build_realtime_session_payload,
+    create_realtime_client_secret,
+    dispatch_realtime_tool,
+)
 from .robot import dispatch_robot_action, dispatch_robot_tool_intent
 from .transcription import DIARIZE_MODEL, transcribe_diarized_audio
 
@@ -50,11 +55,22 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
         if self.path == "/robot/status":
             self._send_json(dispatch_robot_action("status").to_json())
             return
+        if self.path == "/realtime/session-config":
+            self._send_json(build_realtime_session_payload())
+            return
         self._send_json({"error": "not found"}, status=404)
 
     def do_POST(self) -> None:
         if self.path.startswith("/robot/"):
             self._handle_robot_action()
+            return
+
+        if self.path == "/realtime/client-secret":
+            self._handle_realtime_client_secret()
+            return
+
+        if self.path == "/realtime/tool-call":
+            self._handle_realtime_tool_call()
             return
 
         if self.path == "/agent/audio-turn":
@@ -168,6 +184,35 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
         except Exception as error:
             self._send_json({"error": str(error)}, status=500)
 
+    def _handle_realtime_client_secret(self) -> None:
+        try:
+            payload = self._read_json()
+            session_id = str(payload.get("session_id") or "live-room-realtime")
+            result = create_realtime_client_secret(session_id=session_id)
+            self._send_json(result)
+        except Exception as error:
+            self._send_json({"error": str(error)}, status=500)
+
+    def _handle_realtime_tool_call(self) -> None:
+        try:
+            payload = self._read_json()
+            name = str(payload.get("name") or "")
+            arguments = _parse_tool_arguments(payload.get("arguments"))
+            call_id = payload.get("call_id")
+            if not name:
+                self._send_json({"error": "name is required"}, status=400)
+                return
+            result = dispatch_realtime_tool(name, arguments)
+            self._send_json(
+                {
+                    "call_id": call_id,
+                    "name": name,
+                    "output": result,
+                }
+            )
+        except Exception as error:
+            self._send_json({"error": str(error)}, status=500)
+
     def log_message(self, format: str, *args: Any) -> None:
         print(f"[agent] {self.address_string()} - {format % args}")
 
@@ -252,6 +297,16 @@ def _attach_robot_actions(response: dict[str, Any]) -> None:
         if result:
             actions.append(result.to_json())
     response["robot_actions"] = actions
+
+
+def _parse_tool_arguments(raw: Any) -> dict[str, Any]:
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str) and raw.strip():
+        payload = json.loads(raw)
+        if isinstance(payload, dict):
+            return payload
+    return {}
 
 
 def load_local_env() -> None:

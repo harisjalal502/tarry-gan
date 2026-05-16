@@ -35,6 +35,8 @@
 3. Use robot speaker output if available.
 4. Prefer browser/local-machine mic first if direct robot mic remains unreliable.
 5. Investigate direct robot mic only after the rest of the demo works.
+6. Wire the dashboard to the GPT-Realtime-2 WebRTC contract in `docs/realtime-2-pipeline.md`.
+7. Handle Realtime function-call events client-side and route them through `/realtime/tool-call`.
 
 ## Phase 5 - Whiteboard And Room Context
 
@@ -53,8 +55,8 @@ These are valuable if time permits, but they should not block the core demo:
 4. Talk-back: Reachy speaks a short response from the robot speaker.
 5. Transcript polish: dedupe repeated chunk history in the dashboard and add speaker calibration so diarized labels `A/B/C` map to real names.
 
-For hackathon priority, reactions are a plus. Full talk-back is plus-plus.
+For hackathon priority, silent realtime tool routing is core. Full talk-back is plus-plus and should stay behind an explicit toggle.
 
 ## Immediate Next Build Target
 
-Wire live GBrain writes first. The dashboard already shows tool intents; the next product step is making those intents become real GBrain-backed memory that can be queried in the retrieval panel.
+Wire the dashboard to the GPT-Realtime-2 backend contract. The backend can now create tool-only Realtime sessions and route function calls to Reachy/GBrain; the next product step is making the browser WebRTC loop listen, transcribe, call tools, and show those events.

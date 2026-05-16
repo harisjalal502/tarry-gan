@@ -14,6 +14,22 @@ from .models import AgentRun, PhysicalContextEvent, TranscriptTurn
 SOURCE_ID = "tarry-office"
 REPO_ROOT = Path(__file__).resolve().parents[3]
 BRAIN_ROOT = REPO_ROOT / "brain"
+REALTIME_MEMORY_EVENT_TYPES = {
+    "context",
+    "decision",
+    "risk",
+    "question",
+    "follow_up",
+    "whiteboard_observation",
+    "scene_summary",
+}
+REALTIME_MEMORY_SOURCES = {
+    "robot_camera",
+    "robot_microphone",
+    "browser_microphone",
+    "manual",
+    "physical_room",
+}
 
 
 @dataclass(frozen=True)
@@ -139,6 +155,119 @@ def gbrain_put_page(slug: str, markdown: str) -> None:
     if result.returncode != 0:
         message = (result.stderr or result.stdout or "gbrain put failed").strip()
         raise RuntimeError(message)
+
+
+def write_realtime_memory_event(
+    *,
+    session_id: str,
+    text: str,
+    event_type: str = "context",
+    source: str = "physical_room",
+    tags: tuple[str, ...] = (),
+    metadata: dict[str, Any] | None = None,
+) -> MemoryWriteResult:
+    event_type = event_type if event_type in REALTIME_MEMORY_EVENT_TYPES else "context"
+    source = source if source in REALTIME_MEMORY_SOURCES else "physical_room"
+    slug = f"live-sessions/{slugify(session_id)}-realtime"
+    markdown_path = BRAIN_ROOT / f"{slug}.md"
+    jsonl_path = BRAIN_ROOT / "sources" / "physical-room" / f"{slugify(session_id)}.realtime.events.jsonl"
+    event = PhysicalContextEvent(
+        type=event_type,  # type: ignore[arg-type]
+        source=source,  # type: ignore[arg-type]
+        text=text,
+        session_id=session_id,
+        tags=tags,
+        metadata=metadata or {},
+    )
+
+    markdown_path.parent.mkdir(parents=True, exist_ok=True)
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    with jsonl_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event.to_json(), ensure_ascii=False) + "\n")
+
+    events = read_jsonl_events(jsonl_path)
+    markdown = build_realtime_memory_page(session_id=session_id, events=events)
+    markdown_path.write_text(markdown, encoding="utf-8")
+
+    gbrain_put = False
+    gbrain_error = None
+    try:
+        gbrain_put_page(slug, markdown)
+        gbrain_put = True
+    except Exception as error:
+        gbrain_error = str(error)
+
+    return MemoryWriteResult(
+        status="gbrain_written" if gbrain_put else "local_fallback_written",
+        session_id=session_id,
+        slug=slug,
+        markdown_path=str(markdown_path.relative_to(REPO_ROOT)),
+        jsonl_path=str(jsonl_path.relative_to(REPO_ROOT)),
+        gbrain_put=gbrain_put,
+        gbrain_error=gbrain_error,
+        local_event_count=len(events),
+    )
+
+
+def read_jsonl_events(path: Path) -> list[dict[str, Any]]:
+    events = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            events.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return events
+
+
+def build_realtime_memory_page(*, session_id: str, events: list[dict[str, Any]]) -> str:
+    title = f"Realtime room session {session_id}"
+    written_at = datetime.now(UTC).isoformat()
+    event_lines = "\n".join(
+        f"- **{event.get('type', 'context')}:** {event.get('text', '')}"
+        for event in events[-80:]
+    ) or "- None captured yet."
+    tag_set = sorted(
+        {
+            str(tag)
+            for event in events
+            for tag in event.get("tags", [])
+            if str(tag).strip()
+        }
+    )
+    tags = ["tarry", "physical-context", "realtime", "gbrain", *tag_set[:12]]
+
+    return f"""---
+title: "{title}"
+type: "meeting"
+source: "{SOURCE_ID}"
+session_id: "{session_id}"
+date: "{written_at[:10]}"
+tags: {json.dumps(tags)}
+---
+
+# {title}
+
+> Executive summary: Live Realtime-2 tool calls captured durable room context into GBrain-backed memory.
+
+## State
+
+- **Capture mode:** GPT-Realtime-2 tool router.
+- **Physical layers:** Live transcript events, optional image observations, robot reactions, and memory writes.
+- **Memory target:** GBrain source `{SOURCE_ID}`.
+- **Written at:** {written_at}
+
+## Realtime Memory Events
+
+{event_lines}
+
+---
+
+## Timeline
+
+- **{written_at[:10]}** | Tarry realtime session - Captured physical-room context from live tool calls.
+"""
 
 
 def build_live_session_page(

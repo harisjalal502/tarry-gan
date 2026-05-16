@@ -61,7 +61,7 @@ Current implementation status:
 - Replay speaker-separated transcript exists.
 - Browser/live microphone capture records 8-second chunks with `MediaRecorder`.
 - OpenAI `gpt-4o-transcribe-diarize` is wired through the Python agent service at `/agent/audio-turn`.
-- Realtime voice is not required for this layer unless we need low-latency talk-back or live tool calls.
+- GPT-Realtime-2 session configuration is wired as a silent live tool router with realtime input transcription. It should call tools for reactions, gaze, and memory rather than speaking by default.
 
 ### Event Bus
 
@@ -100,6 +100,7 @@ Current implementation status:
 - OpenAI Agents SDK is wired behind the Python agent service.
 - Text and diarized audio turns feed the agent loop.
 - The dashboard renders transcript events, context cards, and tool intents.
+- The backend exposes `/realtime/client-secret`, `/realtime/session-config`, and `/realtime/tool-call` for a GPT-Realtime-2 WebRTC frontend.
 - Live face detections emit debounced `vision_observation` events, but no LLM has interpreted them yet.
 - The next real agent slice is turning `save_memory` tool intents into actual GBrain writes and retrieval answers.
 

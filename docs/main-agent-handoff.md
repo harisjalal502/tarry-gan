@@ -39,8 +39,10 @@ Read these first:
 - `docs/transcription-speaker-identity.md` for diarized transcription decisions.
 - `apps/agent/terrygam_agent/server.py` for HTTP endpoints.
 - `apps/agent/terrygam_agent/memory.py` for GBrain write/search behavior.
+- `apps/agent/terrygam_agent/realtime.py` for GPT-Realtime-2 session/tool config.
 - `apps/agent/terrygam_agent/robot.py` for Reachy adapter behavior.
 - `apps/dashboard/app.js` for current dashboard integration.
+- `docs/realtime-2-pipeline.md` for the Realtime-2 product contract.
 
 ## Current Capabilities
 
@@ -74,6 +76,14 @@ Read these first:
   - `POST /robot/stop`
 - Agent `react` and `look_at` intents dispatch through the robot adapter.
 - Robot speech is not wired yet.
+
+### GPT-Realtime-2
+
+- Backend exposes `GET /realtime/session-config` for inspectable session config.
+- Backend exposes `POST /realtime/client-secret` to create a browser WebRTC client secret.
+- Backend exposes `POST /realtime/tool-call` to route Realtime function calls into Tarry tools.
+- The Realtime session is intentionally text-only output and tool-first. It should transcribe, call `look_at`, `react`, `save_memory`, and `search_memory`, and avoid speaking by default.
+- Live input transcription is enabled in the session config. The slower `gpt-4o-transcribe-diarize` path remains the archival speaker-labeled pass.
 
 ### Dashboard
 
@@ -111,6 +121,7 @@ Optional:
 ```bash
 npm run gbrain:test
 npm run robot:smoke
+npm run realtime:smoke
 ```
 
 ## API Contracts
@@ -175,13 +186,49 @@ Expected response:
 
 `mode` may be `local_fallback` if GBrain fails or returns no results.
 
+### Realtime Client Secret
+
+```http
+POST /realtime/client-secret
+```
+
+Payload:
+
+```json
+{
+  "session_id": "live-room-2026-05-16"
+}
+```
+
+### Realtime Tool Call
+
+```http
+POST /realtime/tool-call
+```
+
+Payload:
+
+```json
+{
+  "call_id": "call_123",
+  "name": "react",
+  "arguments": {
+    "emotion": "insight"
+  }
+}
+```
+
+The response `output` should be sent back to the Realtime session as a function-call output.
+
 ## What Is Left
 
 Highest priority:
 
-1. Have the UI call `/agent/query-memory` from the retrieval panel and render `answer` plus `matches`.
-2. Validate Reachy simulation mode against the running Reachy daemon.
-3. Validate physical hardware mode only when the robot is safe, stable, and `TERRYGAM_ROBOT_ALLOW_MOTION=1` is intentionally set.
+1. Wire the browser to `/realtime/client-secret` using WebRTC and render realtime transcription events.
+2. Handle Realtime function calls client-side, POST them to `/realtime/tool-call`, and send function-call outputs back to the Realtime session.
+3. Send event-triggered camera snapshots as `input_image` so whiteboard/room observations can become `save_memory` calls.
+4. Validate Reachy simulation mode against the running Reachy daemon.
+5. Validate physical hardware mode only when the robot is safe, stable, and `TERRYGAM_ROBOT_ALLOW_MOTION=1` is intentionally set.
 
 Good hackathon polish if time:
 
