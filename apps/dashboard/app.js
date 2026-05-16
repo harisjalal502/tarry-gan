@@ -12,9 +12,7 @@ const REALTIME_CLIENT_SECRET_API_URL = "http://127.0.0.1:8787/realtime/client-se
 const REALTIME_TOOL_CALL_API_URL = "http://127.0.0.1:8787/realtime/tool-call";
 const OPENAI_REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 const AUDIO_SEGMENT_MS = 8000;
-const VISION_OBSERVATION_INTERVAL_MS = 30000;
 const SHOW_AGENT_TOOL_INTENTS = false;
-const RECORD_FACE_DETECTION_CONTEXT = false;
 
 const state = {
   session: null,
@@ -32,8 +30,6 @@ const state = {
     sourceName: "replay",
     reachySession: null,
     reachyApi: null,
-    lastFaceCount: null,
-    lastObservationAt: 0,
   },
   agent: {
     mediaRecorder: null,
@@ -115,8 +111,6 @@ function reset() {
   state.contextCount = 0;
   state.memoryCount = 0;
   state.agent.lastEventIds = new Set();
-  state.liveVision.lastFaceCount = null;
-  state.liveVision.lastObservationAt = 0;
   els.transcript.innerHTML = "";
   els.contextCards.innerHTML = "";
   els.memoryLedger.innerHTML = "";
@@ -747,8 +741,6 @@ function stopLiveVision({ resetStatus = true } = {}) {
   els.faceOverlay.innerHTML = "";
   els.cameraStage.classList.remove("live");
   state.liveVision.sourceName = "replay";
-  state.liveVision.lastFaceCount = null;
-  state.liveVision.lastObservationAt = 0;
   setLiveControls(false);
 
   if (resetStatus) {
@@ -997,44 +989,8 @@ function renderDetections(detections) {
   const faceLabel = faces.length === 1 ? "1 face" : `${faces.length} faces`;
   els.cameraStatus.textContent = `Live vision: ${faceLabel}`;
   els.visionReadout.textContent = `Vision source: ${state.liveVision.sourceName} | detector: ${state.liveVision.detectorName} | ${faceLabel}`;
-  els.reaction.textContent = faces.length > 0 ? "Reaction: person detected" : "Reaction: scanning";
+  els.reaction.textContent = "Reaction: waiting for explicit command";
   setFocus(faces.length > 0 ? "current_speaker" : "center");
-  maybeRecordLiveVisionObservation(faces);
-}
-
-function maybeRecordLiveVisionObservation(faces) {
-  const now = Date.now();
-  const faceCount = faces.length;
-  const countChanged = faceCount !== state.liveVision.lastFaceCount;
-  const debounceElapsed = now - state.liveVision.lastObservationAt > VISION_OBSERVATION_INTERVAL_MS;
-
-  if (!countChanged && !debounceElapsed) return;
-
-  state.liveVision.lastFaceCount = faceCount;
-  state.liveVision.lastObservationAt = now;
-
-  if (faceCount === 0 || !RECORD_FACE_DETECTION_CONTEXT) return;
-
-  const source = state.liveVision.sourceName.toLowerCase().includes("reachy")
-    ? "robot_camera"
-    : "browser_camera";
-  const text = `${faceCount === 1 ? "One person" : `${faceCount} people`} detected in the live camera frame.`;
-
-  addContextCard({
-    kind: "Vision",
-    text: `${text} Source: ${state.liveVision.sourceName}.`,
-  });
-
-  addMemoryWrite({
-    payload: {
-      type: "vision_observation",
-      source,
-      session_id: "live-room-observation",
-      text,
-      detector: state.liveVision.detectorName,
-      tags: ["vision", "face-detection", "physical-context"],
-    },
-  });
 }
 
 function detectionToDisplayBox(detection) {
