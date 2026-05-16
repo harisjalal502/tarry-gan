@@ -10,8 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from .agent import run_agent
-from .memory import write_live_session_memory
+from .memory import query_memory, write_live_session_memory
 from .models import TranscriptTurn
+from .robot import dispatch_robot_action, dispatch_robot_tool_intent
 from .transcription import DIARIZE_MODEL, transcribe_diarized_audio
 
 DEFAULT_HOST = "127.0.0.1"
@@ -46,11 +47,22 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
                 }
             )
             return
+        if self.path == "/robot/status":
+            self._send_json(dispatch_robot_action("status").to_json())
+            return
         self._send_json({"error": "not found"}, status=404)
 
     def do_POST(self) -> None:
+        if self.path.startswith("/robot/"):
+            self._handle_robot_action()
+            return
+
         if self.path == "/agent/audio-turn":
             self._handle_audio_turn()
+            return
+
+        if self.path == "/agent/query-memory":
+            self._handle_query_memory()
             return
 
         if self.path == "/agent/turn":
@@ -84,6 +96,7 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
                 "source": source,
             }
             response["memory_write"] = _write_memory_if_requested(session_id, turns, result)
+            _attach_robot_actions(response)
             _record_debug_run("text", response)
             self._send_json(response)
         except Exception as error:
@@ -126,8 +139,32 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
                 "segment_count": len(transcription_payload.get("segments") or []),
             }
             response["memory_write"] = _write_memory_if_requested(session_id, turns, result)
+            _attach_robot_actions(response)
             _record_debug_run("audio", response)
             self._send_json(response)
+        except Exception as error:
+            self._send_json({"error": str(error)}, status=500)
+
+    def _handle_robot_action(self) -> None:
+        try:
+            action = self.path.removeprefix("/robot/").replace("-", "_")
+            payload = self._read_json()
+            result = dispatch_robot_action(action, payload)
+            self._send_json(result.to_json(), status=200 if result.ok else 409)
+        except Exception as error:
+            self._send_json({"error": str(error)}, status=500)
+
+    def _handle_query_memory(self) -> None:
+        try:
+            payload = self._read_json()
+            query = str(payload.get("query") or "").strip()
+            source = str(payload.get("source") or "tarry-office")
+            limit = int(payload.get("limit") or 5)
+            if not query:
+                self._send_json({"error": "query is required"}, status=400)
+                return
+            result = query_memory(query, source=source, limit=limit)
+            self._send_json(result.to_json())
         except Exception as error:
             self._send_json({"error": str(error)}, status=500)
 
@@ -185,6 +222,7 @@ def _record_debug_run(kind: str, response: dict[str, Any]) -> None:
             "received_turns": response.get("received_turns") or [response.get("received_turn")],
             "event_count": len(response.get("events") or []),
             "tool_intent_count": len(response.get("tool_intents") or []),
+            "robot_actions": response.get("robot_actions") or [],
             "transcription": response.get("transcription"),
             "memory_write": response.get("memory_write"),
         }
@@ -205,6 +243,15 @@ def _write_memory_if_requested(
         agent_run=result,
     )
     return write_result.to_json() if write_result else None
+
+
+def _attach_robot_actions(response: dict[str, Any]) -> None:
+    actions = []
+    for intent in response.get("tool_intents") or []:
+        result = dispatch_robot_tool_intent(intent)
+        if result:
+            actions.append(result.to_json())
+    response["robot_actions"] = actions
 
 
 def load_local_env() -> None:

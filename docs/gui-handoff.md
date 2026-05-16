@@ -166,6 +166,29 @@ Expected `memory_write.status` values:
 - `gbrain_written`: primary path succeeded.
 - `local_fallback_written`: local brain files were written, but GBrain put failed.
 
+### Memory Retrieval
+
+```http
+POST /agent/query-memory
+Content-Type: application/json
+```
+
+Payload:
+
+```json
+{
+  "query": "Prep me for the investor meeting. What did we decide about pricing and what risks are unresolved?",
+  "source": "tarry-office",
+  "limit": 5
+}
+```
+
+Important response fields:
+
+- `mode`: `gbrain` when primary retrieval works, `local_fallback` if GBrain fails or returns no matches.
+- `answer`: short synthesized answer for the retrieval panel.
+- `matches`: source pages/slugs/snippets backing the answer.
+
 ## Current Known UI Issues
 
 These are acceptable hackathon todos unless explicitly assigned:

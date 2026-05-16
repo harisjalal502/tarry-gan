@@ -13,12 +13,14 @@ What exists today:
 - GBrain source/write/search smoke tests with ZeroEntropy semantic retrieval.
 - A Python agent package at `apps/agent/` with an OpenAI Agents SDK adapter and deterministic local smoke mode.
 - Browser microphone chunks routed through OpenAI `gpt-4o-transcribe-diarize` before they enter the agent loop.
+- A robot tool adapter with `mock`, `simulation`, and `hardware` modes. Mock is default; hardware motion requires `TERRYGAM_ROBOT_ALLOW_MOTION=1`.
 
 What does not exist yet:
 
 - Robot microphone capture.
 - Known-speaker enrollment and stable real-name identity mapping.
-- Tool-routing agent connected to real Reachy and GBrain side effects.
+- Tool-routing agent connected to real GBrain side effects.
+- Reachy simulation/hardware confirmation for movement.
 - Agent chat backed by live GBrain retrieval.
 
 ## Role In The Product
@@ -48,7 +50,7 @@ The agent should eventually control these tools:
 - `save_memory(events)` routes to GBrain.
 - `search_memory(query)` routes to GBrain query/search.
 
-For now, robot actions should remain explicit and visible. The dashboard should show what tool the agent would call before we let it act autonomously.
+For now, robot actions remain explicit and visible. Agent `react` and `look_at` intents dispatch to the robot adapter, which defaults to safe mock mode until simulation or hardware is selected.
 
 ## Current Agent Runtime Decision
 

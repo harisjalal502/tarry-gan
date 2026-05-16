@@ -59,15 +59,28 @@ async def _run_openai_agents_sdk(turns: list[TranscriptTurn], session_id: str) -
         )
         return "reaction queued"
 
+    @function_tool
+    def look_at(target: str, reason: str) -> str:
+        """Queue a Reachy gaze target such as center, current_speaker, person_left, person_right, or whiteboard."""
+        captured_tool_intents.append(
+            {
+                "name": "look_at",
+                "arguments": {"target": target},
+                "reason": reason,
+            }
+        )
+        return "look target queued"
+
     agent = Agent(
         name="TerryGam Physical Context Agent",
         instructions=(
             "You turn short, speaker-labeled office transcript chunks into useful startup memory. "
             "Extract decisions, risks, questions, follow-ups, and notable insights. "
             "Call save_memory for extracted durable context. Call react only when a room moment deserves visible feedback. "
+            "Call look_at when the room context clearly implies a target like current_speaker, person_left, person_right, whiteboard, or center. "
             "Return compact JSON with keys summary and events. Events must match TerryGam's physical context schema."
         ),
-        tools=[save_memory, react],
+        tools=[save_memory, react, look_at],
     )
 
     prompt = {
