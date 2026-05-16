@@ -301,6 +301,15 @@ function applyAgentRun(run) {
     });
   }
 
+  if (run.memory_write) {
+    addMemoryWrite({
+      payload: {
+        type: "gbrain_memory_write",
+        ...run.memory_write,
+      },
+    });
+  }
+
   if (run.summary) {
     els.answer.textContent = run.summary;
   }

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .agent import run_agent
+from .memory import write_live_session_memory
 from .models import TranscriptTurn
 from .transcription import DIARIZE_MODEL, transcribe_diarized_audio
 
@@ -82,6 +83,7 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
                 "text": text,
                 "source": source,
             }
+            response["memory_write"] = _write_memory_if_requested(session_id, turns, result)
             _record_debug_run("text", response)
             self._send_json(response)
         except Exception as error:
@@ -123,6 +125,7 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
                 "text": transcription_payload.get("text", ""),
                 "segment_count": len(transcription_payload.get("segments") or []),
             }
+            response["memory_write"] = _write_memory_if_requested(session_id, turns, result)
             _record_debug_run("audio", response)
             self._send_json(response)
         except Exception as error:
@@ -183,9 +186,25 @@ def _record_debug_run(kind: str, response: dict[str, Any]) -> None:
             "event_count": len(response.get("events") or []),
             "tool_intent_count": len(response.get("tool_intents") or []),
             "transcription": response.get("transcription"),
+            "memory_write": response.get("memory_write"),
         }
     )
     del DEBUG_RUNS[:-50]
+
+
+def _write_memory_if_requested(
+    session_id: str,
+    turns: list[TranscriptTurn],
+    result: Any,
+) -> dict[str, Any] | None:
+    if not any(intent.name == "save_memory" for intent in result.tool_intents):
+        return None
+    write_result = write_live_session_memory(
+        session_id=session_id,
+        turns=turns,
+        agent_run=result,
+    )
+    return write_result.to_json() if write_result else None
 
 
 def load_local_env() -> None:
