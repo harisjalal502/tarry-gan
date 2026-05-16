@@ -292,6 +292,10 @@ def _write_memory_if_requested(
 
 def _attach_robot_actions(response: dict[str, Any]) -> None:
     actions = []
+    if os.getenv("TERRYGAM_AGENT_ENABLE_ROBOT_TOOLS") != "1":
+        response["robot_actions"] = actions
+        return
+
     for intent in response.get("tool_intents") or []:
         result = dispatch_robot_tool_intent(intent)
         if result:

@@ -8,7 +8,13 @@ const REACHY_SIGNALING_HOSTS = ["127.0.0.1", "localhost"];
 const AGENT_API_URL = "http://127.0.0.1:8787/agent/turn";
 const AGENT_AUDIO_API_URL = "http://127.0.0.1:8787/agent/audio-turn";
 const AGENT_MEMORY_QUERY_API_URL = "http://127.0.0.1:8787/agent/query-memory";
+const REALTIME_CLIENT_SECRET_API_URL = "http://127.0.0.1:8787/realtime/client-secret";
+const REALTIME_TOOL_CALL_API_URL = "http://127.0.0.1:8787/realtime/tool-call";
+const OPENAI_REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 const AUDIO_SEGMENT_MS = 8000;
+const VISION_OBSERVATION_INTERVAL_MS = 30000;
+const SHOW_AGENT_TOOL_INTENTS = false;
+const RECORD_FACE_DETECTION_CONTEXT = false;
 
 const state = {
   session: null,
@@ -39,6 +45,14 @@ const state = {
     sessionId: `live-room-${new Date().toISOString().slice(0, 10)}`,
     lastEventIds: new Set(),
   },
+  realtime: {
+    peerConnection: null,
+    dataChannel: null,
+    audioStream: null,
+    connected: false,
+    sessionId: `live-room-realtime-${new Date().toISOString().slice(0, 10)}`,
+    processedToolCallIds: new Set(),
+  },
 };
 
 const els = {
@@ -47,11 +61,14 @@ const els = {
   stopLiveButton: document.querySelector("#stopLiveButton"),
   micButton: document.querySelector("#micButton"),
   stopMicButton: document.querySelector("#stopMicButton"),
+  realtimeButton: document.querySelector("#realtimeButton"),
+  stopRealtimeButton: document.querySelector("#stopRealtimeButton"),
   replayButton: document.querySelector("#replayButton"),
   resetButton: document.querySelector("#resetButton"),
   agentInputForm: document.querySelector("#agentInputForm"),
   agentTextInput: document.querySelector("#agentTextInput"),
   agentStatus: document.querySelector("#agentStatus"),
+  realtimeStatus: document.querySelector("#realtimeStatus"),
   retrievalForm: document.querySelector("#retrievalForm"),
   memoryQueryInput: document.querySelector("#memoryQueryInput"),
   retrievalStatus: document.querySelector("#retrievalStatus"),
@@ -93,6 +110,7 @@ function reset() {
   clearTimers();
   stopLiveVision({ resetStatus: false });
   stopMicAgent({ updateStatus: false });
+  stopRealtimeAgent({ updateStatus: false });
   state.transcriptCount = 0;
   state.contextCount = 0;
   state.memoryCount = 0;
@@ -105,14 +123,228 @@ function reset() {
   els.cameraStatus.textContent = "Replay idle";
   els.transcriptStatus.textContent = "0 lines";
   els.contextStatus.textContent = "0 extracted";
-  els.memoryStatus.textContent = "adapter pending";
+  els.memoryStatus.textContent = "idle";
   els.agentStatus.textContent = "Agent service idle";
+  els.realtimeStatus.textContent = "Realtime-2 tools idle";
   els.retrievalStatus.textContent = "ready";
   els.answer.textContent = "Replay the demo to generate a memory-backed answer.";
   els.retrievalMatches.innerHTML = "";
   els.reaction.textContent = "Reaction: observing";
   els.visionReadout.textContent = "Vision source: replay";
   setFocus("center");
+}
+
+async function startRealtimeAgent() {
+  if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
+    els.realtimeStatus.textContent = "Realtime unavailable in this browser.";
+    return;
+  }
+
+  stopRealtimeAgent({ updateStatus: false });
+  setRealtimeControls(true);
+  els.realtimeStatus.textContent = "Creating GPT-Realtime-2 tool session...";
+
+  try {
+    const tokenResponse = await fetch(REALTIME_CLIENT_SECRET_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: state.realtime.sessionId }),
+    });
+    const tokenPayload = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      throw new Error(tokenPayload.error || `Realtime token returned ${tokenResponse.status}`);
+    }
+
+    const clientSecret = getRealtimeClientSecretValue(tokenPayload);
+    if (!clientSecret) {
+      throw new Error("Realtime client secret response did not include a token value.");
+    }
+
+    const pc = new RTCPeerConnection();
+    const dc = pc.createDataChannel("oai-events");
+    state.realtime.peerConnection = pc;
+    state.realtime.dataChannel = dc;
+
+    state.realtime.audioStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+      video: false,
+    });
+    for (const track of state.realtime.audioStream.getAudioTracks()) {
+      pc.addTrack(track, state.realtime.audioStream);
+    }
+
+    dc.addEventListener("open", () => {
+      state.realtime.connected = true;
+      els.realtimeStatus.textContent = "Realtime-2 connected: listening, transcribing, and routing tools.";
+    });
+    dc.addEventListener("message", (event) => {
+      try {
+        void handleRealtimeEvent(JSON.parse(event.data)).catch((error) => {
+          els.realtimeStatus.textContent = `Realtime-2 event error: ${error.message}`;
+        });
+      } catch (error) {
+        els.realtimeStatus.textContent = `Realtime-2 parse error: ${error.message}`;
+      }
+    });
+    dc.addEventListener("close", () => {
+      state.realtime.connected = false;
+      els.realtimeStatus.textContent = "Realtime-2 data channel closed.";
+    });
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const sdpResponse = await fetch(OPENAI_REALTIME_CALLS_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${clientSecret}`,
+        "Content-Type": "application/sdp",
+      },
+      body: offer.sdp,
+    });
+    if (!sdpResponse.ok) {
+      throw new Error(`OpenAI Realtime SDP failed: ${sdpResponse.status} ${await sdpResponse.text()}`);
+    }
+
+    await pc.setRemoteDescription({
+      type: "answer",
+      sdp: await sdpResponse.text(),
+    });
+    els.realtimeStatus.textContent = "Realtime-2 connecting...";
+  } catch (error) {
+    stopRealtimeAgent({ updateStatus: false });
+    els.realtimeStatus.textContent = `Realtime-2 error: ${error.message}`;
+  }
+}
+
+function stopRealtimeAgent({ updateStatus = true } = {}) {
+  state.realtime.connected = false;
+  state.realtime.processedToolCallIds = new Set();
+
+  if (state.realtime.dataChannel) {
+    try {
+      state.realtime.dataChannel.close();
+    } catch {
+      // Ignore channel cleanup errors.
+    }
+  }
+  state.realtime.dataChannel = null;
+
+  if (state.realtime.peerConnection) {
+    try {
+      state.realtime.peerConnection.close();
+    } catch {
+      // Ignore peer cleanup errors.
+    }
+  }
+  state.realtime.peerConnection = null;
+
+  if (state.realtime.audioStream) {
+    for (const track of state.realtime.audioStream.getTracks()) {
+      track.stop();
+    }
+  }
+  state.realtime.audioStream = null;
+  setRealtimeControls(false);
+
+  if (updateStatus) {
+    els.realtimeStatus.textContent = "Realtime-2 stopped.";
+  }
+}
+
+function setRealtimeControls(running) {
+  els.realtimeButton.disabled = running;
+  els.stopRealtimeButton.disabled = !running;
+}
+
+function getRealtimeClientSecretValue(payload) {
+  if (typeof payload.value === "string") return payload.value;
+  if (typeof payload.client_secret === "string") return payload.client_secret;
+  if (typeof payload.client_secret?.value === "string") return payload.client_secret.value;
+  return "";
+}
+
+async function handleRealtimeEvent(event) {
+  if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript) {
+    addTranscript({
+      speaker: "realtime",
+      text: event.transcript,
+    });
+    els.realtimeStatus.textContent = "Realtime-2 transcript received.";
+    return;
+  }
+
+  const functionCall = extractRealtimeFunctionCall(event);
+  if (functionCall) {
+    await runRealtimeToolCall(functionCall);
+  }
+}
+
+function extractRealtimeFunctionCall(event) {
+  if (event.type === "response.function_call_arguments.done") {
+    return {
+      call_id: event.call_id,
+      name: event.name,
+      arguments: event.arguments,
+    };
+  }
+
+  if (event.type === "response.output_item.done" && event.item?.type === "function_call") {
+    return {
+      call_id: event.item.call_id,
+      name: event.item.name,
+      arguments: event.item.arguments,
+    };
+  }
+
+  return null;
+}
+
+async function runRealtimeToolCall(functionCall) {
+  if (functionCall.call_id && state.realtime.processedToolCallIds.has(functionCall.call_id)) {
+    return;
+  }
+  if (functionCall.call_id) {
+    state.realtime.processedToolCallIds.add(functionCall.call_id);
+  }
+
+  els.realtimeStatus.textContent = `Realtime-2 tool: ${functionCall.name}`;
+  const response = await fetch(REALTIME_TOOL_CALL_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(functionCall),
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error || `Realtime tool returned ${response.status}`);
+  }
+
+  addMemoryWrite({
+    payload: {
+      type: "realtime_tool_call",
+      name: payload.name,
+      output: payload.output,
+    },
+  });
+  sendRealtimeToolOutput(payload.call_id, payload.output);
+}
+
+function sendRealtimeToolOutput(callId, output) {
+  const channel = state.realtime.dataChannel;
+  if (!channel || channel.readyState !== "open" || !callId) return;
+
+  channel.send(JSON.stringify({
+    type: "conversation.item.create",
+    item: {
+      type: "function_call_output",
+      call_id: callId,
+      output: JSON.stringify(output),
+    },
+  }));
+  channel.send(JSON.stringify({ type: "response.create" }));
 }
 
 async function startMicAgent() {
@@ -330,16 +562,18 @@ function applyAgentRun(run) {
     }
   }
 
-  for (const intent of run.tool_intents ?? []) {
-    addMemoryWrite({
-      payload: {
-        type: "agent_tool_intent",
-        tool: intent.name,
-        reason: intent.reason,
-        arguments: intent.arguments,
-        session_id: run.session_id,
-      },
-    });
+  if (SHOW_AGENT_TOOL_INTENTS) {
+    for (const intent of run.tool_intents ?? []) {
+      addMemoryWrite({
+        payload: {
+          type: "agent_tool_intent",
+          tool: intent.name,
+          reason: intent.reason,
+          arguments: intent.arguments,
+          session_id: run.session_id,
+        },
+      });
+    }
   }
 
   if (run.memory_write) {
@@ -772,14 +1006,14 @@ function maybeRecordLiveVisionObservation(faces) {
   const now = Date.now();
   const faceCount = faces.length;
   const countChanged = faceCount !== state.liveVision.lastFaceCount;
-  const debounceElapsed = now - state.liveVision.lastObservationAt > 5000;
+  const debounceElapsed = now - state.liveVision.lastObservationAt > VISION_OBSERVATION_INTERVAL_MS;
 
   if (!countChanged && !debounceElapsed) return;
 
   state.liveVision.lastFaceCount = faceCount;
   state.liveVision.lastObservationAt = now;
 
-  if (faceCount === 0) return;
+  if (faceCount === 0 || !RECORD_FACE_DETECTION_CONTEXT) return;
 
   const source = state.liveVision.sourceName.toLowerCase().includes("reachy")
     ? "robot_camera"
@@ -946,13 +1180,44 @@ function addContextCard(event) {
 
 function addMemoryWrite(event) {
   state.memoryCount += 1;
-  els.memoryStatus.textContent = `${state.memoryCount} writes`;
+  els.memoryStatus.textContent = `${state.memoryCount} events`;
 
   const entry = document.createElement("div");
   entry.className = "ledger-entry";
-  entry.textContent = JSON.stringify(event.payload, null, 2);
+  entry.textContent = formatLedgerPayload(event.payload);
   els.memoryLedger.append(entry);
   entry.scrollIntoView({ block: "end", behavior: "smooth" });
+}
+
+function formatLedgerPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    return String(payload ?? "");
+  }
+
+  if (payload.type === "gbrain_memory_write") {
+    const target = payload.gbrain_put ? "GBrain" : "local fallback";
+    return `Captured context -> ${target}: ${payload.slug} (${payload.local_event_count} events)`;
+  }
+
+  if (payload.type === "robot_action") {
+    return `Robot ${payload.action} -> ${payload.ok ? "ok" : "failed"} (${payload.mode}): ${payload.message}`;
+  }
+
+  if (payload.type === "realtime_tool_call") {
+    const outputType = payload.output?.type ?? "tool";
+    const result = payload.output?.result;
+    if (outputType === "robot_action_blocked") {
+      return `Realtime-2 ${payload.name} blocked: ${result?.message ?? "safe demo mode"}`;
+    }
+    const mode = result?.mode ? `, ${result.mode}` : "";
+    return `Realtime-2 ${payload.name} -> ${outputType}${mode}`;
+  }
+
+  if (payload.type === "vision_observation") {
+    return `Vision: ${payload.text} (${payload.source}, ${payload.detector})`;
+  }
+
+  return JSON.stringify(payload, null, 2);
 }
 
 function escapeHtml(value) {
@@ -969,6 +1234,8 @@ els.liveButton.addEventListener("click", startLiveVision);
 els.stopLiveButton.addEventListener("click", () => stopLiveVision());
 els.micButton.addEventListener("click", startMicAgent);
 els.stopMicButton.addEventListener("click", () => stopMicAgent());
+els.realtimeButton.addEventListener("click", startRealtimeAgent);
+els.stopRealtimeButton.addEventListener("click", () => stopRealtimeAgent());
 els.agentInputForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const text = els.agentTextInput.value;
@@ -983,6 +1250,7 @@ els.replayButton.addEventListener("click", replay);
 els.resetButton.addEventListener("click", reset);
 setLiveControls(false);
 setMicControls(false);
+setRealtimeControls(false);
 
 loadSession().catch((error) => {
   els.cameraStatus.textContent = "Replay data error";

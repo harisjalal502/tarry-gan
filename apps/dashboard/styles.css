@@ -377,6 +377,10 @@ button:disabled {
   font-weight: 800;
 }
 
+.realtime-status {
+  color: var(--blue);
+}
+
 .transcript-line {
   display: grid;
   gap: 7px;

@@ -18,7 +18,11 @@ assert session["audio"]["input"]["transcription"]["model"], session
 tool_names = {tool["name"] for tool in session["tools"]}
 assert {"look_at", "react", "save_memory", "search_memory"}.issubset(tool_names), tool_names
 
-robot_result = dispatch_realtime_tool("react", {"emotion": "insight"})
+blocked_result = dispatch_realtime_tool("react", {"emotion": "insight"})
+assert blocked_result["type"] == "robot_action_blocked", blocked_result
+assert not blocked_result["result"]["ok"], blocked_result
+
+robot_result = dispatch_realtime_tool("react", {"emotion": "insight", "explicit_command": True})
 assert robot_result["type"] == "robot_action", robot_result
 assert robot_result["result"]["ok"], robot_result
 

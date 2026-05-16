@@ -47,40 +47,17 @@ async def _run_openai_agents_sdk(turns: list[TranscriptTurn], session_id: str) -
         )
         return "memory write queued"
 
-    @function_tool
-    def react(emotion: str, reason: str) -> str:
-        """Queue a visible Reachy reaction."""
-        captured_tool_intents.append(
-            {
-                "name": "react",
-                "arguments": {"emotion": emotion},
-                "reason": reason,
-            }
-        )
-        return "reaction queued"
-
-    @function_tool
-    def look_at(target: str, reason: str) -> str:
-        """Queue a Reachy gaze target such as center, current_speaker, person_left, person_right, or whiteboard."""
-        captured_tool_intents.append(
-            {
-                "name": "look_at",
-                "arguments": {"target": target},
-                "reason": reason,
-            }
-        )
-        return "look target queued"
-
     agent = Agent(
         name="TerryGam Physical Context Agent",
         instructions=(
             "You turn short, speaker-labeled office transcript chunks into useful startup memory. "
             "Extract decisions, risks, questions, follow-ups, and notable insights. "
-            "Call save_memory for extracted durable context. Call react only when a room moment deserves visible feedback. "
-            "Call look_at when the room context clearly implies a target like current_speaker, person_left, person_right, whiteboard, or center. "
+            "Use this chunk path for memory extraction only. Do not control robot motion from this path. "
+            "Do not call tools for casual chatter, unclear speech, generic speaker changes, or requests to react. "
+            "Call save_memory only for durable decisions, risks, follow-ups, open questions, or clearly useful context. "
             "Return compact JSON with keys summary and events. Events must match TerryGam's physical context schema."
         ),
-        tools=[save_memory, react, look_at],
+        tools=[save_memory],
     )
 
     prompt = {
@@ -104,16 +81,16 @@ async def _run_openai_agents_sdk(turns: list[TranscriptTurn], session_id: str) -
             reason=intent["reason"],
         )
         for intent in captured_tool_intents
-        if intent["name"] in {"save_memory", "search_memory", "react", "look_at"}
+        if intent["name"] == "save_memory"
     )
 
     # The SDK handles model reasoning and tool choice. Until we enforce structured
     # outputs, keep our schema-stable local extraction as the artifact returned to
-    # the dashboard and attach SDK mode for observability.
+    # the dashboard and use local tool intents to avoid noisy live robot actions.
     return AgentRun(
         mode="sdk",
         session_id=session_id,
         summary=str(result.final_output or local.summary),
         events=local.events,
-        tool_intents=sdk_tool_intents or local.tool_intents,
+        tool_intents=local.tool_intents or sdk_tool_intents,
     )

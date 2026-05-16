@@ -14,7 +14,7 @@
           <h1>Tarry turns the office into searchable memory.</h1>
           <p class="subtitle">
             Replay mode shows the product spine: vision, audio, embodied
-            reactions, context extraction, memory writes, and retrieval.
+            reactions, selective context capture, and retrieval.
           </p>
         </div>
         <div class="controls">
@@ -23,6 +23,8 @@
           <button id="stopLiveButton" type="button" class="secondary">Stop Vision</button>
           <button id="micButton" type="button">Start Diarized Mic</button>
           <button id="stopMicButton" type="button" class="secondary">Stop Mic</button>
+          <button id="realtimeButton" type="button">Start Realtime-2 Tools</button>
+          <button id="stopRealtimeButton" type="button" class="secondary">Stop Realtime-2</button>
           <button id="replayButton" type="button">Replay Demo</button>
           <button id="resetButton" type="button" class="secondary">Reset</button>
         </div>
@@ -65,6 +67,7 @@
             <button type="submit" class="secondary">Send to Agent</button>
           </form>
           <div class="agent-status" id="agentStatus">Agent service idle</div>
+          <div class="agent-status realtime-status" id="realtimeStatus">Realtime-2 tools idle</div>
           <div class="scroll" id="transcript"></div>
         </article>
 
@@ -78,8 +81,8 @@
 
         <article class="panel memory-panel">
           <div class="panel-header">
-            <span>GBrain Memory Writes</span>
-            <strong id="memoryStatus">adapter pending</strong>
+            <span>Activity Log</span>
+            <strong id="memoryStatus">idle</strong>
           </div>
           <div class="scroll ledger" id="memoryLedger"></div>
         </article>
