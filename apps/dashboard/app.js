@@ -628,6 +628,8 @@ function connectReachyHost(host) {
     let settled = false;
     let session = null;
     let api = null;
+    let producerSeen = false;
+    let connectionReady = false;
 
     function cleanup() {
       if (session?.close) {
@@ -654,8 +656,42 @@ function connectReachyHost(host) {
       resolve({ stream, api, session, host });
     }
 
+    function connectProducer(producer) {
+      if (session || settled || !producer?.id) return;
+      producerSeen = true;
+      els.visionReadout.textContent = `Reachy producer ${producer.meta?.name ?? producer.id} found; negotiating camera stream`;
+      session = api.createConsumerSession(producer.id);
+      if (!session) {
+        fail(new Error("Could not create Reachy camera consumer session."));
+        return;
+      }
+
+      session.addEventListener("error", (event) => {
+        fail(new Error(event.message || "Reachy camera stream error."));
+      });
+
+      session.addEventListener("streamsChanged", () => {
+        const streams = session.streams;
+        if (!streams || streams.length === 0) return;
+        succeed(streams[0]);
+      });
+
+      session.connect();
+    }
+
+    function connectFirstAvailableProducer() {
+      if (!connectionReady || session || settled || !api?.getAvailableProducers) return;
+      const producers = api.getAvailableProducers();
+      if (producers.length > 0) {
+        connectProducer(producers[0]);
+      }
+    }
+
     const timeout = window.setTimeout(() => {
-      fail(new Error(`No camera producer from ${host}:${REACHY_SIGNALING_PORT}. Is Reachy connected in the Reachy Mini Control app?`));
+      const detail = producerSeen
+        ? `Reachy advertised a camera producer on ${host}:${REACHY_SIGNALING_PORT}, but the WebRTC media stream did not arrive.`
+        : `No camera producer from ${host}:${REACHY_SIGNALING_PORT}. Is Reachy connected in the Reachy Mini Control app?`;
+      fail(new Error(detail));
     }, 8000);
 
     api = new GstWebRTCAPI({
@@ -672,7 +708,10 @@ function connectReachyHost(host) {
 
     api.registerConnectionListener({
       connected: () => {
+        connectionReady = true;
         els.visionReadout.textContent = `Connected to Reachy signaling on ${host}:${REACHY_SIGNALING_PORT}; waiting for camera stream`;
+        window.setTimeout(connectFirstAvailableProducer, 0);
+        window.setTimeout(connectFirstAvailableProducer, 500);
       },
       disconnected: () => {
         fail(new Error(`Disconnected from Reachy signaling on ${host}:${REACHY_SIGNALING_PORT}.`));
@@ -681,24 +720,7 @@ function connectReachyHost(host) {
 
     api.registerProducersListener({
       producerAdded: (producer) => {
-        if (session) return;
-        session = api.createConsumerSession(producer.id);
-        if (!session) {
-          fail(new Error("Could not create Reachy camera consumer session."));
-          return;
-        }
-
-        session.addEventListener("error", (event) => {
-          fail(new Error(event.message || "Reachy camera stream error."));
-        });
-
-        session.addEventListener("streamsChanged", () => {
-          const streams = session.streams;
-          if (!streams || streams.length === 0) return;
-          succeed(streams[0]);
-        });
-
-        session.connect();
+        connectProducer(producer);
       },
     });
   });
