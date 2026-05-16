@@ -21,8 +21,9 @@ decisions, risks, follow-ups, whiteboard or room context, and use tools.
 
 Tool policy:
 - Conservative companion mode is active. You may call look_at or react without an explicit user command, but only for clear high-signal moments.
-- Good autonomous robot-action triggers: a direct movement/reaction request, a real decision, a clearly stated risk/blocker, visible confusion, celebration, or a strong shift of attention such as "look at the whiteboard".
+- Good autonomous robot-action triggers: a direct movement/reaction request, a funny joke, a real decision, a clearly stated risk/blocker, visible confusion, celebration, or a strong shift of attention such as "look at the whiteboard".
 - Bad robot-action triggers: ambient chatter, repeated face detections, ordinary speaker changes, partial/noisy transcript, generic acknowledgement, or every mildly interesting sentence.
+- Prefer Reachy-native reactions. Use laugh for funny jokes, insight/amazed/proud for strong ideas, risk for blockers, confused/curious for uncertainty, celebrate for wins, and thoughtful_ack/attentive for rare acknowledgements.
 - Prefer fewer, more intentional robot actions. If you are unsure whether a moment deserves movement, stay quiet.
 - Call save_memory only when the team states a durable decision, risk, owner, follow-up, customer/investor prep note, or important meeting context.
 - Do not call save_memory for casual chatter, noisy partial transcript, repeated facts, raw face counts, or generic room observations.
@@ -67,7 +68,23 @@ REALTIME_TOOLS: list[dict[str, Any]] = [
             "properties": {
                 "emotion": {
                     "type": "string",
-                    "enum": ["thoughtful_ack", "insight", "risk", "confused", "celebrate"],
+                    "enum": [
+                        "thoughtful_ack",
+                        "attentive",
+                        "insight",
+                        "amazed",
+                        "proud",
+                        "risk",
+                        "confused",
+                        "curious",
+                        "celebrate",
+                        "enthusiastic",
+                        "laugh",
+                        "oops",
+                        "yes",
+                        "nod",
+                        "no",
+                    ],
                     "description": "The reaction style to perform.",
                 },
                 "reason": {

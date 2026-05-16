@@ -31,6 +31,27 @@ REACTION_TARGETS = {
     "celebrate": {"body_yaw": 0.0, "antennas": [-0.8, 0.8]},
 }
 
+REACHY_EMOTIONS_DATASET = "pollen-robotics/reachy-mini-emotions-library"
+REACHY_DANCES_DATASET = "pollen-robotics/reachy-mini-dances-library"
+
+NATIVE_REACTION_MOVES = {
+    "thoughtful_ack": (REACHY_DANCES_DATASET, "uh_huh_tilt"),
+    "attentive": (REACHY_EMOTIONS_DATASET, "attentive1"),
+    "insight": (REACHY_EMOTIONS_DATASET, "amazed1"),
+    "amazed": (REACHY_EMOTIONS_DATASET, "amazed1"),
+    "proud": (REACHY_EMOTIONS_DATASET, "proud1"),
+    "risk": (REACHY_EMOTIONS_DATASET, "anxiety1"),
+    "confused": (REACHY_EMOTIONS_DATASET, "confused1"),
+    "curious": (REACHY_EMOTIONS_DATASET, "curious1"),
+    "celebrate": (REACHY_EMOTIONS_DATASET, "cheerful1"),
+    "enthusiastic": (REACHY_EMOTIONS_DATASET, "enthusiastic1"),
+    "laugh": (REACHY_EMOTIONS_DATASET, "laughing1"),
+    "oops": (REACHY_EMOTIONS_DATASET, "oops2"),
+    "yes": (REACHY_DANCES_DATASET, "yeah_nod"),
+    "nod": (REACHY_DANCES_DATASET, "simple_nod"),
+    "no": (REACHY_EMOTIONS_DATASET, "no1"),
+}
+
 
 @dataclass(frozen=True)
 class RobotActionResult:
@@ -94,7 +115,7 @@ class MockRobotAdapter(RobotAdapter):
         target_args = REACTION_TARGETS.get(emotion, REACTION_TARGETS["thoughtful_ack"])
         return self._record(
             "react",
-            {"emotion": emotion, **target_args},
+            {"emotion": emotion, "native_move": NATIVE_REACTION_MOVES.get(emotion), **target_args},
             f"Mock react({emotion}) accepted.",
         )
 
@@ -163,12 +184,46 @@ class ReachyDaemonAdapter(RobotAdapter):
         )
 
     def react(self, emotion: str) -> RobotActionResult:
+        native = NATIVE_REACTION_MOVES.get(emotion)
+        if native:
+            return self._play_recorded_move(
+                dataset=native[0],
+                move_name=native[1],
+                emotion=emotion,
+            )
+
         target_args = REACTION_TARGETS.get(emotion, REACTION_TARGETS["thoughtful_ack"])
         return self._goto(
             action="react",
-            arguments={"emotion": emotion, **target_args},
-            message=f"Reachy react({emotion}) requested.",
+            arguments={"emotion": emotion, "fallback": "goto_pose", **target_args},
+            message=f"Reachy fallback react({emotion}) requested.",
         )
+
+    def _play_recorded_move(self, *, dataset: str, move_name: str, emotion: str) -> RobotActionResult:
+        if self._hardware_motion_blocked():
+            return self._blocked("react", {"emotion": emotion, "dataset": dataset, "move_name": move_name})
+        try:
+            response = self._request_json(
+                "POST",
+                f"/api/move/play/recorded-move-dataset/{dataset}/{move_name}",
+                timeout=12.0,
+            )
+            return RobotActionResult(
+                ok=True,
+                mode=self.mode,
+                action="react",
+                message=f"Reachy native reaction {move_name} requested.",
+                arguments={"emotion": emotion, "dataset": dataset, "move_name": move_name},
+                response=response,
+            )
+        except Exception as error:
+            return RobotActionResult(
+                ok=False,
+                mode=self.mode,
+                action="react",
+                message=f"Reachy native reaction {move_name} failed: {error}",
+                arguments={"emotion": emotion, "dataset": dataset, "move_name": move_name},
+            )
 
     def speak(self, text: str) -> RobotActionResult:
         return RobotActionResult(
