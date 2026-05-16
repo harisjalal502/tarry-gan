@@ -426,25 +426,22 @@ button:disabled {
   line-height: 1.45;
 }
 
-.query,
+.retrieval-form,
 .answer {
   margin: 18px;
   border-radius: 18px;
   padding: 18px;
 }
 
-.query {
+.retrieval-form {
+  display: grid;
+  gap: 12px;
   border: 1px solid var(--line);
   color: var(--muted);
   background: rgba(245, 241, 223, 0.04);
 }
 
-.query p {
-  margin: 0;
-}
-
-.query .query-label {
-  margin-bottom: 8px;
+.query-label {
   color: var(--accent);
   font-size: 0.76rem;
   font-weight: 900;
@@ -452,11 +449,50 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.retrieval-form textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.22);
+  font: inherit;
+  line-height: 1.45;
+}
+
 .answer {
   color: #171913;
   background: var(--green);
   font-size: 1.03rem;
   line-height: 1.5;
+}
+
+.retrieval-matches {
+  display: grid;
+  gap: 10px;
+  margin: 0 18px 18px;
+}
+
+.retrieval-match,
+.retrieval-empty {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  color: var(--muted);
+  background: rgba(245, 241, 223, 0.04);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.retrieval-match b,
+.retrieval-match span {
+  display: block;
+}
+
+.retrieval-match b {
+  margin-bottom: 6px;
+  color: var(--ink);
 }
 
 @media (max-width: 1080px) {

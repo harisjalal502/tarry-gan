@@ -87,15 +87,17 @@
         <article class="panel retrieval-panel">
           <div class="panel-header">
             <span>Meeting Prep Retrieval</span>
-            <strong>demo query</strong>
+            <strong id="retrievalStatus">ready</strong>
           </div>
-          <div class="query">
-            <p class="query-label">Teammate asks:</p>
-            <p>"Prep me for the investor meeting. What did we decide about pricing and what risks are unresolved?"</p>
-          </div>
+          <form class="retrieval-form" id="retrievalForm">
+            <label class="query-label" for="memoryQueryInput">Teammate asks:</label>
+            <textarea id="memoryQueryInput" rows="3">Prep me for the investor meeting. What did we decide about pricing and what risks are unresolved?</textarea>
+            <button type="submit" class="secondary">Query GBrain</button>
+          </form>
           <div class="answer" id="answer">
             Replay the demo to generate a memory-backed answer.
           </div>
+          <div class="retrieval-matches" id="retrievalMatches"></div>
         </article>
       </section>
     </main>

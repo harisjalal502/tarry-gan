@@ -7,6 +7,7 @@ const REACHY_SIGNALING_PORT = 8443;
 const REACHY_SIGNALING_HOSTS = ["127.0.0.1", "localhost"];
 const AGENT_API_URL = "http://127.0.0.1:8787/agent/turn";
 const AGENT_AUDIO_API_URL = "http://127.0.0.1:8787/agent/audio-turn";
+const AGENT_MEMORY_QUERY_API_URL = "http://127.0.0.1:8787/agent/query-memory";
 const AUDIO_SEGMENT_MS = 8000;
 
 const state = {
@@ -51,6 +52,10 @@ const els = {
   agentInputForm: document.querySelector("#agentInputForm"),
   agentTextInput: document.querySelector("#agentTextInput"),
   agentStatus: document.querySelector("#agentStatus"),
+  retrievalForm: document.querySelector("#retrievalForm"),
+  memoryQueryInput: document.querySelector("#memoryQueryInput"),
+  retrievalStatus: document.querySelector("#retrievalStatus"),
+  retrievalMatches: document.querySelector("#retrievalMatches"),
   cameraStage: document.querySelector("#cameraStage"),
   cameraVideo: document.querySelector("#cameraVideo"),
   faceOverlay: document.querySelector("#faceOverlay"),
@@ -102,7 +107,9 @@ function reset() {
   els.contextStatus.textContent = "0 extracted";
   els.memoryStatus.textContent = "adapter pending";
   els.agentStatus.textContent = "Agent service idle";
+  els.retrievalStatus.textContent = "ready";
   els.answer.textContent = "Replay the demo to generate a memory-backed answer.";
+  els.retrievalMatches.innerHTML = "";
   els.reaction.textContent = "Reaction: observing";
   els.visionReadout.textContent = "Vision source: replay";
   setFocus("center");
@@ -265,6 +272,40 @@ async function sendTextToAgent(text, options = {}) {
     els.agentStatus.textContent = `Agent ${payload.mode}: ${payload.events.length} events, ${payload.tool_intents.length} tool intents.`;
   } catch (error) {
     els.agentStatus.textContent = `Agent error: ${error.message}. Is npm run agent:serve running?`;
+  }
+}
+
+async function queryMemory() {
+  const query = els.memoryQueryInput.value.trim();
+  if (!query) return;
+
+  els.retrievalStatus.textContent = "searching";
+  els.answer.textContent = "Searching GBrain-backed room memory...";
+  els.retrievalMatches.innerHTML = "";
+
+  try {
+    const response = await fetch(AGENT_MEMORY_QUERY_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        source: "tarry-office",
+        limit: 5,
+      }),
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || `Memory query returned ${response.status}`);
+    }
+
+    els.answer.textContent = payload.answer;
+    els.retrievalStatus.textContent = payload.mode === "gbrain" ? "GBrain" : payload.mode;
+    els.memoryStatus.textContent = "retrieval complete";
+    renderRetrievalMatches(payload.matches ?? []);
+  } catch (error) {
+    els.retrievalStatus.textContent = "error";
+    els.answer.textContent = `Memory query error: ${error.message}. Is npm run agent:serve running?`;
   }
 }
 
@@ -818,9 +859,29 @@ function applyEvent(event) {
 
   if (event.type === "retrieval_answer") {
     els.answer.textContent = event.text;
+    els.retrievalStatus.textContent = "replay";
+    els.retrievalMatches.innerHTML = "";
     els.memoryStatus.textContent = "retrieval complete";
     els.cameraStatus.textContent = "Replay complete";
   }
+}
+
+function renderRetrievalMatches(matches) {
+  if (matches.length === 0) {
+    els.retrievalMatches.innerHTML = '<div class="retrieval-empty">No matching memory pages returned.</div>';
+    return;
+  }
+
+  els.retrievalMatches.replaceChildren(...matches.map((match) => {
+    const entry = document.createElement("div");
+    entry.className = "retrieval-match";
+    const score = typeof match.score === "number" ? ` · score ${match.score.toFixed(2)}` : "";
+    entry.innerHTML = `
+      <b>${escapeHtml(match.slug)}${escapeHtml(score)}</b>
+      <span>${escapeHtml(match.snippet)}</span>
+    `;
+    return entry;
+  }));
 }
 
 function setFocus(target) {
@@ -891,6 +952,10 @@ els.agentInputForm.addEventListener("submit", (event) => {
   const text = els.agentTextInput.value;
   els.agentTextInput.value = "";
   void sendTextToAgent(text, { source: "manual" });
+});
+els.retrievalForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void queryMemory();
 });
 els.replayButton.addEventListener("click", replay);
 els.resetButton.addEventListener("click", reset);
