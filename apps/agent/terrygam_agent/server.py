@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+from email.parser import BytesParser
+from email.policy import default
 import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -9,12 +11,14 @@ from typing import Any
 
 from .agent import run_agent
 from .models import TranscriptTurn
+from .transcription import DIARIZE_MODEL, transcribe_diarized_audio
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8787
 DEFAULT_MODE = "sdk"
 
 SESSIONS: dict[str, list[TranscriptTurn]] = {}
+DEBUG_RUNS: list[dict[str, Any]] = []
 
 
 class AgentRequestHandler(BaseHTTPRequestHandler):
@@ -25,15 +29,36 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/health":
-            self._send_json({"ok": True, "service": "terrygam-agent"})
+            self._send_json({"ok": True, "service": "terrygam-agent", "diarize_model": DIARIZE_MODEL})
+            return
+        if self.path == "/debug/sessions":
+            self._send_json(
+                {
+                    "sessions": {
+                        session_id: [
+                            {"speaker": turn.speaker, "text": turn.text, "source": turn.source}
+                            for turn in turns
+                        ]
+                        for session_id, turns in SESSIONS.items()
+                    },
+                    "runs": DEBUG_RUNS[-20:],
+                }
+            )
             return
         self._send_json({"error": "not found"}, status=404)
 
     def do_POST(self) -> None:
-        if self.path != "/agent/turn":
-            self._send_json({"error": "not found"}, status=404)
+        if self.path == "/agent/audio-turn":
+            self._handle_audio_turn()
             return
 
+        if self.path == "/agent/turn":
+            self._handle_text_turn()
+            return
+
+        self._send_json({"error": "not found"}, status=404)
+
+    def _handle_text_turn(self) -> None:
         try:
             payload = self._read_json()
             session_id = str(payload.get("session_id") or "live-room-observation")
@@ -57,6 +82,48 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
                 "text": text,
                 "source": source,
             }
+            _record_debug_run("text", response)
+            self._send_json(response)
+        except Exception as error:
+            self._send_json({"error": str(error)}, status=500)
+
+    def _handle_audio_turn(self) -> None:
+        try:
+            form = self._read_multipart()
+            session_id = str(form.get("session_id") or "live-room-observation")
+            source = str(form.get("source") or "browser_microphone")
+            mode = str(form.get("mode") or os.getenv("TERRYGAM_AGENT_MODE") or DEFAULT_MODE)
+            file_payload = form.get("file")
+
+            if not isinstance(file_payload, dict):
+                self._send_json({"error": "multipart field 'file' is required"}, status=400)
+                return
+
+            transcript_turns, transcription_payload = transcribe_diarized_audio(
+                file_payload["content"],
+                filename=file_payload["filename"],
+                mime_type=file_payload["content_type"],
+                source=source,
+            )
+
+            if not transcript_turns:
+                self._send_json({"error": "OpenAI returned no transcript text"}, status=422)
+                return
+
+            turns = SESSIONS.setdefault(session_id, [])
+            turns.extend(transcript_turns)
+            result = asyncio.run(run_agent(turns, session_id=session_id, mode=mode))  # type: ignore[arg-type]
+            response = result.to_json()
+            response["received_turns"] = [
+                {"speaker": turn.speaker, "text": turn.text, "source": turn.source}
+                for turn in transcript_turns
+            ]
+            response["transcription"] = {
+                "model": DIARIZE_MODEL,
+                "text": transcription_payload.get("text", ""),
+                "segment_count": len(transcription_payload.get("segments") or []),
+            }
+            _record_debug_run("audio", response)
             self._send_json(response)
         except Exception as error:
             self._send_json({"error": str(error)}, status=500)
@@ -69,6 +136,31 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length).decode("utf-8")
         return json.loads(raw or "{}")
 
+    def _read_multipart(self) -> dict[str, Any]:
+        content_type = self.headers.get("Content-Type", "")
+        length = int(self.headers.get("Content-Length", "0"))
+        body = self.rfile.read(length)
+        message = BytesParser(policy=default).parsebytes(
+            f"Content-Type: {content_type}\r\nMIME-Version: 1.0\r\n\r\n".encode("utf-8") + body
+        )
+
+        fields: dict[str, Any] = {}
+        for part in message.iter_parts():
+            name = part.get_param("name", header="content-disposition")
+            if not name:
+                continue
+            filename = part.get_filename()
+            content = part.get_payload(decode=True) or b""
+            if filename:
+                fields[name] = {
+                    "filename": filename,
+                    "content_type": part.get_content_type(),
+                    "content": content,
+                }
+            else:
+                fields[name] = content.decode("utf-8")
+        return fields
+
     def _send_json(self, payload: dict[str, Any], status: int = 200) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
@@ -79,6 +171,21 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
         self.wfile.write(body)
+
+
+def _record_debug_run(kind: str, response: dict[str, Any]) -> None:
+    DEBUG_RUNS.append(
+        {
+            "kind": kind,
+            "mode": response.get("mode"),
+            "session_id": response.get("session_id"),
+            "received_turns": response.get("received_turns") or [response.get("received_turn")],
+            "event_count": len(response.get("events") or []),
+            "tool_intent_count": len(response.get("tool_intents") or []),
+            "transcription": response.get("transcription"),
+        }
+    )
+    del DEBUG_RUNS[:-50]
 
 
 def load_local_env() -> None:

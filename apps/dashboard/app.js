@@ -6,6 +6,8 @@ const GST_WEBRTC_SCRIPT_URL = "./vendor/gstwebrtc-api-2.0.0.min.js";
 const REACHY_SIGNALING_PORT = 8443;
 const REACHY_SIGNALING_HOSTS = ["127.0.0.1", "localhost"];
 const AGENT_API_URL = "http://127.0.0.1:8787/agent/turn";
+const AGENT_AUDIO_API_URL = "http://127.0.0.1:8787/agent/audio-turn";
+const AUDIO_SEGMENT_MS = 8000;
 
 const state = {
   session: null,
@@ -27,9 +29,12 @@ const state = {
     lastObservationAt: 0,
   },
   agent: {
-    recognition: null,
+    mediaRecorder: null,
+    audioStream: null,
+    segmentTimer: null,
     listening: false,
     speakerIndex: 1,
+    segmentIndex: 0,
     sessionId: `live-room-${new Date().toISOString().slice(0, 10)}`,
     lastEventIds: new Set(),
   },
@@ -104,62 +109,52 @@ function reset() {
 }
 
 async function startMicAgent() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    els.agentStatus.textContent = "Speech recognition unavailable here; type a line and click Send to Agent.";
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    els.agentStatus.textContent = "Audio recording unavailable here; type a line and click Send to Agent.";
     return;
   }
 
   stopMicAgent({ updateStatus: false });
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = "en-US";
-
-  recognition.addEventListener("start", () => {
+  try {
+    state.agent.audioStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+      video: false,
+    });
     state.agent.listening = true;
+    state.agent.segmentIndex = 0;
     setMicControls(true);
-    els.agentStatus.textContent = "Mic listening; final phrases go to the agent.";
-  });
-
-  recognition.addEventListener("result", (event) => {
-    for (let index = event.resultIndex; index < event.results.length; index += 1) {
-      const result = event.results[index];
-      if (!result.isFinal) continue;
-      const text = result[0]?.transcript?.trim();
-      if (text) {
-        void sendTextToAgent(text, { source: "browser_microphone" });
-      }
-    }
-  });
-
-  recognition.addEventListener("error", (event) => {
-    els.agentStatus.textContent = `Mic error: ${event.error}. Type a line as fallback.`;
-    setMicControls(false);
-  });
-
-  recognition.addEventListener("end", () => {
-    state.agent.listening = false;
-    setMicControls(false);
-    if (els.agentStatus.textContent.includes("listening")) {
-      els.agentStatus.textContent = "Mic stopped.";
-    }
-  });
-
-  state.agent.recognition = recognition;
-  recognition.start();
+    els.agentStatus.textContent = "Recording audio chunks for OpenAI diarized transcription.";
+    startNextAudioSegment();
+  } catch (error) {
+    els.agentStatus.textContent = `Mic permission/error: ${error.message}. Type a line as fallback.`;
+    stopMicAgent({ updateStatus: false });
+  }
 }
 
 function stopMicAgent({ updateStatus = true } = {}) {
-  if (state.agent.recognition) {
+  state.agent.listening = false;
+  clearTimeout(state.agent.segmentTimer);
+  state.agent.segmentTimer = null;
+
+  if (state.agent.mediaRecorder && state.agent.mediaRecorder.state !== "inactive") {
     try {
-      state.agent.recognition.stop();
+      state.agent.mediaRecorder.stop();
     } catch {
-      // Browser recognizers can throw if they are already stopped.
+      // MediaRecorder can throw if it is already stopped.
     }
   }
-  state.agent.recognition = null;
-  state.agent.listening = false;
+  state.agent.mediaRecorder = null;
+
+  if (state.agent.audioStream) {
+    for (const track of state.agent.audioStream.getTracks()) {
+      track.stop();
+    }
+  }
+  state.agent.audioStream = null;
   setMicControls(false);
   if (updateStatus) {
     els.agentStatus.textContent = "Mic stopped.";
@@ -169,6 +164,77 @@ function stopMicAgent({ updateStatus = true } = {}) {
 function setMicControls(listening) {
   els.micButton.disabled = listening;
   els.stopMicButton.disabled = !listening;
+}
+
+function startNextAudioSegment() {
+  if (!state.agent.listening || !state.agent.audioStream) return;
+
+  const mimeType = preferredAudioMimeType();
+  const recorder = mimeType
+    ? new MediaRecorder(state.agent.audioStream, { mimeType })
+    : new MediaRecorder(state.agent.audioStream);
+  const chunks = [];
+  state.agent.mediaRecorder = recorder;
+  state.agent.segmentIndex += 1;
+
+  recorder.addEventListener("dataavailable", (event) => {
+    if (event.data.size > 0) {
+      chunks.push(event.data);
+    }
+  });
+
+  recorder.addEventListener("stop", () => {
+    const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+    if (blob.size > 0) {
+      void sendAudioToAgent(blob, state.agent.segmentIndex);
+    }
+    if (state.agent.listening) {
+      startNextAudioSegment();
+    }
+  });
+
+  recorder.start();
+  els.agentStatus.textContent = `Recording diarized chunk ${state.agent.segmentIndex}...`;
+  state.agent.segmentTimer = setTimeout(() => {
+    if (recorder.state !== "inactive") {
+      recorder.stop();
+    }
+  }, AUDIO_SEGMENT_MS);
+}
+
+function preferredAudioMimeType() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+  ];
+  return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate)) ?? "";
+}
+
+async function sendAudioToAgent(blob, segmentIndex) {
+  const form = new FormData();
+  const extension = blob.type.includes("mp4") ? "mp4" : "webm";
+  form.append("session_id", state.agent.sessionId);
+  form.append("source", "browser_microphone");
+  form.append("mode", "sdk");
+  form.append("file", blob, `tarry-${state.agent.sessionId}-${segmentIndex}.${extension}`);
+
+  els.agentStatus.textContent = `Transcribing chunk ${segmentIndex} with OpenAI diarization...`;
+
+  try {
+    const response = await fetch(AGENT_AUDIO_API_URL, {
+      method: "POST",
+      body: form,
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || `Agent service returned ${response.status}`);
+    }
+    applyAgentRun(payload);
+    els.agentStatus.textContent = `Diarized ${payload.received_turns.length} turns with ${payload.transcription.model}; agent ${payload.mode}.`;
+  } catch (error) {
+    els.agentStatus.textContent = `Audio agent error: ${error.message}`;
+  }
 }
 
 async function sendTextToAgent(text, options = {}) {

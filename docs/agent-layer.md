@@ -12,12 +12,12 @@ What exists today:
 - Debounced live `vision_observation` entries in the dashboard memory ledger.
 - GBrain source/write/search smoke tests with ZeroEntropy semantic retrieval.
 - A Python agent package at `apps/agent/` with an OpenAI Agents SDK adapter and deterministic local smoke mode.
+- Browser microphone chunks routed through OpenAI `gpt-4o-transcribe-diarize` before they enter the agent loop.
 
 What does not exist yet:
 
-- Browser microphone capture.
-- OpenAI `gpt-4o-transcribe-diarize` integration.
-- Live LLM context extraction against real microphone chunks.
+- Robot microphone capture.
+- Known-speaker enrollment and stable real-name identity mapping.
 - Tool-routing agent connected to real Reachy and GBrain side effects.
 - Agent chat backed by live GBrain retrieval.
 

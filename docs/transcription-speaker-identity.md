@@ -162,6 +162,13 @@ We are good to start building with this plan:
 Current implementation status:
 
 - `TranscriptionProvider` and the replay provider exist.
-- OpenAI `gpt-4o-transcribe-diarize` is not wired yet.
-- Browser microphone capture is not wired yet.
-- The next implementation step is to record browser mic chunks and submit completed chunks to the OpenAI diarized transcription provider.
+- Browser microphone capture records self-contained 8-second `audio/webm` chunks with `MediaRecorder`.
+- The Python agent service accepts those chunks at `/agent/audio-turn`.
+- The service calls OpenAI `gpt-4o-transcribe-diarize` with `response_format="diarized_json"`.
+- Diarized turns are appended to the session and passed through the TerryGam agent.
+
+Still missing:
+
+- Durable raw-audio storage and retry queues.
+- Known-speaker enrollment clips.
+- Robot microphone capture. The first live path uses browser audio because it is simpler and more reliable for the hackathon.
