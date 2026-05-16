@@ -16,7 +16,7 @@
 4. Connect Reachy head movement to target selection.
 5. Add visible status for camera, motion, audio, and memory.
 6. Add transcript provider interface and replay speaker-separated transcript. Completed as the first pipeline seam.
-7. Add diarized chunk transcription for memory writes.
+7. Add diarized chunk transcription for memory writes. Completed with browser `MediaRecorder` chunks sent to OpenAI `gpt-4o-transcribe-diarize`.
 
 ## Phase 3 - GBrain/GMemory
 
@@ -51,9 +51,10 @@ These are valuable if time permits, but they should not block the core demo:
 2. Confusion reaction: when the transcript has unresolved disagreement, Reachy does a curious/tilted-head reaction.
 3. Attention sweep: Reachy periodically looks around to detect whiteboards, screens, and room state.
 4. Talk-back: Reachy speaks a short response from the robot speaker.
+5. Transcript polish: dedupe repeated chunk history in the dashboard and add speaker calibration so diarized labels `A/B/C` map to real names.
 
 For hackathon priority, reactions are a plus. Full talk-back is plus-plus.
 
 ## Immediate Next Build Target
 
-Build the dashboard + replay event stream first. Then wire one real detector. The first real detector should probably be face detection because it is visible, understandable, and directly tied to Reachy turning toward people or room artifacts.
+Wire live GBrain writes first. The dashboard already shows tool intents; the next product step is making those intents become real GBrain-backed memory that can be queried in the retrieval panel.

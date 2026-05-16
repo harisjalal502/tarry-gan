@@ -59,8 +59,8 @@ See `docs/transcription-speaker-identity.md`.
 Current implementation status:
 
 - Replay speaker-separated transcript exists.
-- Browser/live microphone capture is not implemented yet.
-- OpenAI `gpt-4o-transcribe-diarize` is planned but not plugged in yet.
+- Browser/live microphone capture records 8-second chunks with `MediaRecorder`.
+- OpenAI `gpt-4o-transcribe-diarize` is wired through the Python agent service at `/agent/audio-turn`.
 - Realtime voice is not required for this layer unless we need low-latency talk-back or live tool calls.
 
 ### Event Bus
@@ -97,10 +97,11 @@ Expected interfaces:
 
 Current implementation status:
 
-- No LLM agent loop is wired yet.
-- Replay events currently stand in for what the agent layer will eventually extract.
-- Live face detections now emit debounced `vision_observation` events, but no LLM has interpreted them yet.
-- The next real agent slice is browser mic chunks -> `gpt-4o-transcribe-diarize` memory transcript -> context extraction -> GBrain write.
+- OpenAI Agents SDK is wired behind the Python agent service.
+- Text and diarized audio turns feed the agent loop.
+- The dashboard renders transcript events, context cards, and tool intents.
+- Live face detections emit debounced `vision_observation` events, but no LLM has interpreted them yet.
+- The next real agent slice is turning `save_memory` tool intents into actual GBrain writes and retrieval answers.
 
 ### Memory Adapter
 
