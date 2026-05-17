@@ -40,13 +40,6 @@ It runs on Reachy Mini, listens through Realtime, sees through the robot camera,
   <img src="docs/assets/gallery/tarry-demo-room.jpg" width="32%" alt="Tarry in the demo room" />
 </p>
 
-### Physical Context
-
-<p>
-  <img src="docs/assets/gallery/whiteboard-physical-context.jpg" width="49%" alt="Whiteboard with physical and digital context diagram" />
-  <img src="docs/assets/gallery/video-whiteboard-discussion-3.jpg" width="49%" alt="Founders discussing a whiteboard with Tarry nearby" />
-</p>
-
 ### Demo Room
 
 <p>
