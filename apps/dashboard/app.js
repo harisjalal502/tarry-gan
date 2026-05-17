@@ -52,6 +52,7 @@ const state = {
     connected: false,
     sessionId: `live-room-realtime-${new Date().toISOString().slice(0, 10)}`,
     processedToolCallIds: new Set(),
+    processedCaptureCommands: new Set(),
   },
 };
 
@@ -277,6 +278,7 @@ function setTarryControls(running) {
 function stopRealtimeAgent({ updateStatus = true } = {}) {
   state.realtime.connected = false;
   state.realtime.processedToolCallIds = new Set();
+  state.realtime.processedCaptureCommands = new Set();
 
   if (state.realtime.dataChannel) {
     try {
@@ -327,6 +329,12 @@ async function handleRealtimeEvent(event) {
       speaker: "realtime",
       text: event.transcript,
     });
+    if (shouldCaptureWhiteboardFromTranscript(event.transcript)) {
+      void captureWhiteboardToScratchpad({
+        trigger: "voice_command",
+        reason: `Voice command: ${event.transcript}`,
+      });
+    }
     els.realtimeStatus.textContent = "Realtime-2 transcript received.";
     return;
   }
@@ -335,6 +343,18 @@ async function handleRealtimeEvent(event) {
   if (functionCall) {
     await runRealtimeToolCall(functionCall);
   }
+}
+
+function shouldCaptureWhiteboardFromTranscript(transcript) {
+  const text = String(transcript ?? "").toLowerCase();
+  const wantsVision = /\b(capture|read|scan|see|look at|inspect|transcribe|ocr|summarize|check)\b/.test(text);
+  const targetBoard = /\b(whiteboard|white board|board)\b/.test(text);
+  if (!wantsVision || !targetBoard) return false;
+
+  const key = text.replace(/\s+/g, " ").trim();
+  if (state.realtime.processedCaptureCommands.has(key)) return false;
+  state.realtime.processedCaptureCommands.add(key);
+  return true;
 }
 
 function extractRealtimeFunctionCall(event) {
