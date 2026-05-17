@@ -78,6 +78,7 @@ const els = {
   retrievalMatches: document.querySelector("#retrievalMatches"),
   cameraStage: document.querySelector("#cameraStage"),
   cameraVideo: document.querySelector("#cameraVideo"),
+  captureFlash: document.querySelector("#captureFlash"),
   faceOverlay: document.querySelector("#faceOverlay"),
   cameraStatus: document.querySelector("#cameraStatus"),
   visionReadout: document.querySelector("#visionReadout"),
@@ -368,7 +369,7 @@ async function runRealtimeToolCall(functionCall) {
     throw new Error(payload.error || `Realtime tool returned ${response.status}`);
   }
 
-  applyRealtimeToolOutput(payload);
+  await applyRealtimeToolOutput(payload);
   addMemoryWrite({
     payload: {
       type: "realtime_tool_call",
@@ -379,7 +380,12 @@ async function runRealtimeToolCall(functionCall) {
   sendRealtimeToolOutput(payload.call_id, payload.output);
 }
 
-function applyRealtimeToolOutput(payload) {
+async function applyRealtimeToolOutput(payload) {
+  if (payload.output?.type === "frontend_capture_request") {
+    await captureWhiteboardToScratchpad({ trigger: "agent_tool", reason: payload.output.result?.reason });
+    return;
+  }
+
   if (payload.output?.type === "scratchpad_write") {
     addScratchpadEntry(payload.output.result);
     return;
@@ -405,12 +411,15 @@ function sendRealtimeToolOutput(callId, output) {
   channel.send(JSON.stringify({ type: "response.create" }));
 }
 
-function captureWhiteboardToScratchpad() {
+async function captureWhiteboardToScratchpad({ trigger = "manual", reason = "" } = {}) {
   const channel = state.realtime.dataChannel;
   if (!channel || channel.readyState !== "open") {
     els.scratchpadStatus.textContent = "start Tarry first";
     return;
   }
+
+  triggerCaptureAnimation();
+  els.scratchpadStatus.textContent = trigger === "agent_tool" ? "agent is scanning" : "capturing board";
 
   const dataUrl = captureCurrentVideoFrame();
   if (!dataUrl) {
@@ -428,7 +437,7 @@ function captureWhiteboardToScratchpad() {
         {
           type: "input_text",
           text: (
-            "Capture the whiteboard and visible room context from this image. "
+            `${reason ? `${reason} ` : ""}Capture the whiteboard and visible room context from this image. `
             + "Call write_scratchpad with concise notes. Use section whiteboard for board text, "
             + "scene for visible context, and conversation only if the image clearly supports it. "
             + "Do not call save_memory yet."
@@ -442,7 +451,18 @@ function captureWhiteboardToScratchpad() {
       ],
     },
   }));
-  channel.send(JSON.stringify({ type: "response.create" }));
+  if (trigger !== "agent_tool") {
+    channel.send(JSON.stringify({ type: "response.create" }));
+  }
+}
+
+function triggerCaptureAnimation() {
+  els.cameraStage.classList.remove("capturing");
+  void els.cameraStage.offsetWidth;
+  els.cameraStage.classList.add("capturing");
+  window.setTimeout(() => {
+    els.cameraStage.classList.remove("capturing");
+  }, 1100);
 }
 
 function captureCurrentVideoFrame() {
@@ -1458,7 +1478,9 @@ els.tarryButton.addEventListener("click", () => {
   void startTarry();
 });
 els.stopTarryButton.addEventListener("click", stopTarry);
-els.captureBoardButton.addEventListener("click", captureWhiteboardToScratchpad);
+els.captureBoardButton.addEventListener("click", () => {
+  void captureWhiteboardToScratchpad();
+});
 els.liveButton.addEventListener("click", startLiveVision);
 els.stopLiveButton.addEventListener("click", () => stopLiveVision());
 els.micButton.addEventListener("click", startMicAgent);

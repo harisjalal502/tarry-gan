@@ -28,6 +28,7 @@ Tool policy:
 - Call save_memory only when the team states a durable decision, risk, owner, follow-up, customer/investor prep note, or important meeting context.
 - Do not call save_memory for casual chatter, noisy partial transcript, repeated facts, raw face counts, or generic room observations.
 - Use write_scratchpad for live working notes from the conversation or a provided image. The Scratchpad is temporary and can include useful rough notes.
+- When the user asks you to see, read, scan, capture, or inspect the whiteboard, call capture_whiteboard. That frontend tool will send you the current camera frame as an image.
 - When an image is provided with a request to capture the board, read visible whiteboard text and important scene context, then call write_scratchpad. Do not save it to GBrain unless the user explicitly asks to commit/save memory.
 - Call search_memory when the user asks what was previously decided or needs meeting/customer/investor prep.
 - Do not claim you can see something unless an image or explicit vision observation was provided.
@@ -99,6 +100,21 @@ REALTIME_TOOLS: list[dict[str, Any]] = [
                 },
             },
             "required": ["emotion"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "type": "function",
+        "name": "capture_whiteboard",
+        "description": "Ask the dashboard to snapshot the current Reachy/laptop camera frame and send it back as an image.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "description": "Why the current camera frame should be captured.",
+                },
+            },
             "additionalProperties": False,
         },
     },
@@ -285,6 +301,15 @@ def dispatch_realtime_tool(name: str, arguments: dict[str, Any] | None = None) -
         return {
             "type": "robot_action",
             "result": dispatch_robot_action("react", {"emotion": args.get("emotion", "thoughtful_ack")}).to_json(),
+        }
+
+    if name == "capture_whiteboard":
+        return {
+            "type": "frontend_capture_request",
+            "result": {
+                "target": "whiteboard",
+                "reason": str(args.get("reason") or "Realtime requested a whiteboard capture."),
+            },
         }
 
     if name == "save_memory":
