@@ -59,6 +59,7 @@ const els = {
   tarryButton: document.querySelector("#tarryButton"),
   stopTarryButton: document.querySelector("#stopTarryButton"),
   captureBoardButton: document.querySelector("#captureBoardButton"),
+  debugPanelsButton: document.querySelector("#debugPanelsButton"),
   reachyButton: document.querySelector("#reachyButton"),
   liveButton: document.querySelector("#liveButton"),
   stopLiveButton: document.querySelector("#stopLiveButton"),
@@ -96,6 +97,12 @@ const els = {
   gaze: document.querySelector("#gaze"),
   reaction: document.querySelector("#reaction"),
 };
+
+function toggleDebugPanels() {
+  const showing = document.body.classList.toggle("show-debug-panels");
+  els.debugPanelsButton.textContent = showing ? "Hide Debug Panels" : "Show Debug Panels";
+  els.debugPanelsButton.setAttribute("aria-expanded", String(showing));
+}
 
 async function loadSession() {
   const response = await fetch("./data/demo-session.json");
@@ -1478,6 +1485,7 @@ els.stopTarryButton.addEventListener("click", stopTarry);
 els.captureBoardButton.addEventListener("click", () => {
   void captureWhiteboardToScratchpad();
 });
+els.debugPanelsButton.addEventListener("click", toggleDebugPanels);
 els.liveButton.addEventListener("click", startLiveVision);
 els.stopLiveButton.addEventListener("click", () => stopLiveVision());
 els.micButton.addEventListener("click", startMicAgent);
