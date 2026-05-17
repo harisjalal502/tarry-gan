@@ -36,7 +36,7 @@ body {
 .shell {
   width: min(1440px, calc(100vw - 40px));
   margin: 0 auto;
-  padding: 28px 0 40px;
+  padding: 18px 0 24px;
 }
 
 .hero {
@@ -45,10 +45,10 @@ body {
   grid-template-columns: 1fr auto;
   gap: 28px;
   align-items: end;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: clamp(24px, 4vw, 42px);
+  padding: clamp(18px, 3vw, 30px);
   color: var(--ink);
   background: var(--canvas);
   box-shadow: var(--shadow);
@@ -186,8 +186,9 @@ button:disabled {
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(420px, 1.25fr) minmax(280px, 0.75fr) minmax(320px, 0.9fr);
+  grid-template-columns: minmax(560px, 1.45fr) minmax(360px, 0.85fr);
   gap: 14px;
+  align-items: stretch;
 }
 
 .panel {
@@ -200,13 +201,16 @@ button:disabled {
 }
 
 .camera-panel {
-  grid-row: span 2;
-  min-height: 610px;
+  min-height: min(720px, calc(100vh - 210px));
   background: var(--canvas);
 }
 
-.retrieval-panel {
-  grid-column: span 2;
+.scratchpad-panel {
+  min-height: min(720px, calc(100vh - 210px));
+}
+
+.support-panel {
+  display: none;
 }
 
 .panel-header {
@@ -234,7 +238,7 @@ button:disabled {
 .camera-stage {
   position: relative;
   height: calc(100% - 50px);
-  min-height: 555px;
+  min-height: min(660px, calc(100vh - 260px));
   overflow: hidden;
   background: var(--surface-warm);
 }
@@ -617,8 +621,9 @@ button:disabled {
 
 .scratchpad {
   display: grid;
+  align-content: start;
   gap: 10px;
-  max-height: 360px;
+  max-height: calc(100vh - 270px);
   overflow: auto;
   padding: 16px;
 }

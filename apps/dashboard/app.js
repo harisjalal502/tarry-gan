@@ -1373,7 +1373,6 @@ function addTranscript(event) {
     <span>${escapeHtml(event.text)}</span>
   `;
   els.transcript.append(line);
-  line.scrollIntoView({ block: "end", behavior: "smooth" });
 }
 
 function addContextCard(event) {
@@ -1405,7 +1404,6 @@ function addScratchpadEntry(entry) {
     <span class="scratchpad-meta">${escapeHtml(entry.source ?? "physical_room")}${escapeHtml(confidence)}</span>
   `;
   els.scratchpad.append(note);
-  note.scrollIntoView({ block: "end", behavior: "smooth" });
 }
 
 function resetScratchpad(reason = "") {
@@ -1424,7 +1422,6 @@ function addMemoryWrite(event) {
   entry.className = "ledger-entry";
   entry.textContent = formatLedgerPayload(event.payload);
   els.memoryLedger.append(entry);
-  entry.scrollIntoView({ block: "end", behavior: "smooth" });
 }
 
 function formatLedgerPayload(payload) {
