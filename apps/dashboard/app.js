@@ -14,6 +14,7 @@ const OPENAI_REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 const AUDIO_SEGMENT_MS = 8000;
 const CAMERA_READY_TIMEOUT_MS = 20000;
 const SHOW_AGENT_TOOL_INTENTS = false;
+const DEFAULT_AGENT_ANSWER = "Ask a question and Tarry will query GBrain-backed room memory.";
 
 const state = {
   session: null,
@@ -133,7 +134,7 @@ function reset() {
   els.agentStatus.textContent = "Agent service idle";
   els.realtimeStatus.textContent = "Realtime-2 tools idle";
   els.retrievalStatus.textContent = "ready";
-  els.answer.textContent = "Replay the demo to generate a memory-backed answer.";
+  els.answer.textContent = DEFAULT_AGENT_ANSWER;
   els.retrievalMatches.innerHTML = "";
   els.reaction.textContent = "Reaction: observing";
   els.visionReadout.textContent = "Vision source: replay";
@@ -624,7 +625,7 @@ async function queryMemory() {
   if (!query) return;
 
   els.retrievalStatus.textContent = "searching";
-  els.answer.textContent = "Searching GBrain-backed room memory...";
+  els.answer.textContent = "Tarry is checking the room memory...";
   els.retrievalMatches.innerHTML = "";
 
   try {
@@ -643,7 +644,7 @@ async function queryMemory() {
       throw new Error(payload.error || `Memory query returned ${response.status}`);
     }
 
-    els.answer.textContent = payload.answer;
+    renderAgentAnswer(payload);
     els.retrievalStatus.textContent = payload.mode === "gbrain" ? "GBrain" : payload.mode;
     els.memoryStatus.textContent = "retrieval complete";
     renderRetrievalMatches(payload.matches ?? []);
@@ -1233,13 +1234,101 @@ function renderRetrievalMatches(matches) {
   els.retrievalMatches.replaceChildren(...matches.map((match) => {
     const entry = document.createElement("div");
     entry.className = "retrieval-match";
-    const score = typeof match.score === "number" ? ` · score ${match.score.toFixed(2)}` : "";
+    const parsed = parseMemorySnippet(match.snippet);
+    const score = typeof match.score === "number" ? `Score ${match.score.toFixed(2)}` : "";
+    const date = parsed.date ? formatDateLabel(parsed.date) : "Undated";
+    const title = parsed.title || humanizeSlug(match.slug);
+    const tags = parsed.tags.length > 0 ? parsed.tags : ["room-memory"];
     entry.innerHTML = `
-      <b>${escapeHtml(match.slug)}${escapeHtml(score)}</b>
-      <span>${escapeHtml(match.snippet)}</span>
+      <div class="retrieval-match-topline">
+        <b>${escapeHtml(title)}</b>
+        <span>${escapeHtml(date)}</span>
+      </div>
+      <div class="retrieval-tags">
+        ${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}
+      </div>
+      <p>${escapeHtml(parsed.body || cleanMemorySnippet(match.snippet))}</p>
+      <small>${escapeHtml(match.slug)}${score ? ` · ${escapeHtml(score)}` : ""}</small>
     `;
     return entry;
   }));
+}
+
+function renderAgentAnswer(payload) {
+  const matches = payload.matches ?? [];
+  if (matches.length === 0) {
+    els.answer.innerHTML = `
+      <b>No matching room memory yet.</b>
+      <span>${escapeHtml(payload.query ?? "Try another question after capturing context.")}</span>
+    `;
+    return;
+  }
+
+  const best = parseMemorySnippet(matches[0].snippet);
+  const title = best.title || humanizeSlug(matches[0].slug);
+  const context = best.body || cleanMemorySnippet(matches[0].snippet);
+  els.answer.innerHTML = `
+    <b>Tarry found ${matches.length} relevant memory ${matches.length === 1 ? "page" : "pages"}.</b>
+    <span>Best match: ${escapeHtml(title)}</span>
+    <p>${escapeHtml(context)}</p>
+  `;
+}
+
+function parseMemorySnippet(snippet) {
+  const frontmatter = {};
+  const raw = String(snippet ?? "").trim();
+  const normalized = raw.replace(/\s+/g, " ");
+  const pairs = [...normalized.matchAll(/(?:^|\s)(title|type|source|session_id|date|tags):\s*(.*?)(?=\s(?:title|type|source|session_id|date|tags):|$)/g)];
+
+  for (const pair of pairs) {
+    frontmatter[pair[1]] = pair[2].trim().replace(/^["']|["']$/g, "");
+  }
+
+  const tags = parseTags(frontmatter.tags);
+  return {
+    title: frontmatter.title ?? "",
+    date: frontmatter.date ?? "",
+    tags,
+    body: cleanMemorySnippet(raw),
+  };
+}
+
+function parseTags(rawTags) {
+  if (!rawTags) return [];
+  const cleaned = String(rawTags).replace(/^\[/, "").replace(/\].*$/, "");
+  return cleaned
+    .split(",")
+    .map((tag) => tag.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function cleanMemorySnippet(snippet) {
+  return String(snippet ?? "")
+    .replace(/---/g, " ")
+    .replace(/\b(title|type|source|session_id|date|tags):\s*(?:"[^"]*"|\[[^\]]*\]|\S+)/g, " ")
+    .replace(/^#+\s*/gm, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 360);
+}
+
+function humanizeSlug(slug) {
+  return String(slug ?? "memory")
+    .split("/")
+    .at(-1)
+    .replaceAll("-", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatDateLabel(value) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function setFocus(target) {

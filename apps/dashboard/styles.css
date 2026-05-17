@@ -644,6 +644,26 @@ button:disabled {
   line-height: 1.5;
 }
 
+.answer b,
+.answer span,
+.answer p {
+  display: block;
+}
+
+.answer b {
+  margin-bottom: 8px;
+}
+
+.answer span {
+  color: var(--slate);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.answer p {
+  margin: 10px 0 0;
+}
+
 .retrieval-matches {
   display: grid;
   gap: 10px;
@@ -661,14 +681,51 @@ button:disabled {
   line-height: 1.4;
 }
 
-.retrieval-match b,
-.retrieval-match span {
-  display: block;
+.retrieval-match-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
 }
 
 .retrieval-match b {
-  margin-bottom: 6px;
   color: var(--charcoal);
+  font-size: 0.95rem;
+}
+
+.retrieval-match-topline span {
+  flex: 0 0 auto;
+  color: var(--slate);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.retrieval-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.retrieval-tags span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--charcoal);
+  background: var(--canvas);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.retrieval-match p {
+  margin: 0 0 10px;
+  color: var(--slate);
+}
+
+.retrieval-match small {
+  color: var(--stone);
+  font-size: 0.74rem;
+  font-weight: 700;
 }
 
 @media (max-width: 1080px) {
