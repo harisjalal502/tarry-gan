@@ -21,16 +21,13 @@ It runs on Reachy Mini, listens through Realtime, sees through the robot camera,
 ### Tarry At YC
 
 <p>
-  <img src="docs/assets/gallery/tarry-with-hackathon-team.jpg" width="32%" alt="Tarry with the hackathon team" />
-  <img src="docs/assets/gallery/tarry-team-table-wide.jpg" width="32%" alt="Tarry with team members at the table" />
-  <img src="docs/assets/gallery/tarry-team-portrait.jpg" width="32%" alt="Tarry team portrait" />
+  <img src="docs/assets/gallery/tarry-with-hackathon-team.jpg" width="100%" alt="Tarry with the hackathon team" />
 </p>
 
 ### Tarry With Robot Friends
 
 <p>
-  <img src="docs/assets/gallery/tarry-office-companion.jpg" width="49%" alt="Tarry beside another robot in the workspace" />
-  <img src="docs/assets/gallery/tarry-with-builders.jpg" width="49%" alt="Tarry with builders and robot friends in the office" />
+  <img src="docs/assets/gallery/tarry-with-builders.jpg" width="100%" alt="Tarry with builders and robot friends in the office" />
 </p>
 
 ### Office Companion
