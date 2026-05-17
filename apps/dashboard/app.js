@@ -989,7 +989,7 @@ function renderDetections(detections) {
   const faceLabel = faces.length === 1 ? "1 face" : `${faces.length} faces`;
   els.cameraStatus.textContent = `Live vision: ${faceLabel}`;
   els.visionReadout.textContent = `Vision source: ${state.liveVision.sourceName} | detector: ${state.liveVision.detectorName} | ${faceLabel}`;
-  els.reaction.textContent = "Reaction: waiting for explicit command";
+  els.reaction.textContent = "Reaction: watching for high-signal moments";
   setFocus(faces.length > 0 ? "current_speaker" : "center");
 }
 
