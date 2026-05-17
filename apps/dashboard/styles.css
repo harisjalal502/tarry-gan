@@ -72,6 +72,7 @@ h1 {
   flex-wrap: wrap;
   gap: 12px;
   justify-content: flex-end;
+  max-width: 560px;
 }
 
 button {
@@ -92,9 +93,40 @@ button.secondary {
   box-shadow: none;
 }
 
+button.primary-action {
+  min-width: 160px;
+  font-size: 1rem;
+}
+
 button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.advanced-controls {
+  width: 100%;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.advanced-controls summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.advanced-control-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.advanced-control-grid button {
+  padding: 10px 13px;
+  font-size: 0.86rem;
 }
 
 .grid {
@@ -510,6 +542,14 @@ button:disabled {
   }
 
   .controls {
+    justify-content: flex-start;
+  }
+
+  .advanced-controls {
+    text-align: left;
+  }
+
+  .advanced-control-grid {
     justify-content: flex-start;
   }
 }

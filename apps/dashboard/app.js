@@ -21,6 +21,7 @@ const state = {
   transcriptCount: 0,
   contextCount: 0,
   memoryCount: 0,
+  tarryRunning: false,
   liveVision: {
     stream: null,
     detector: null,
@@ -53,6 +54,8 @@ const state = {
 };
 
 const els = {
+  tarryButton: document.querySelector("#tarryButton"),
+  stopTarryButton: document.querySelector("#stopTarryButton"),
   reachyButton: document.querySelector("#reachyButton"),
   liveButton: document.querySelector("#liveButton"),
   stopLiveButton: document.querySelector("#stopLiveButton"),
@@ -105,6 +108,7 @@ function clearTimers() {
 
 function reset() {
   clearTimers();
+  state.tarryRunning = false;
   stopLiveVision({ resetStatus: false });
   stopMicAgent({ updateStatus: false });
   stopRealtimeAgent({ updateStatus: false });
@@ -127,6 +131,7 @@ function reset() {
   els.reaction.textContent = "Reaction: observing";
   els.visionReadout.textContent = "Vision source: replay";
   setFocus("center");
+  setTarryControls(false);
 }
 
 async function startRealtimeAgent() {
@@ -213,6 +218,44 @@ async function startRealtimeAgent() {
     stopRealtimeAgent({ updateStatus: false });
     els.realtimeStatus.textContent = `Realtime-2 error: ${error.message}`;
   }
+}
+
+async function startTarry() {
+  state.tarryRunning = true;
+  setTarryControls(true);
+  els.agentStatus.textContent = "Starting Tarry: Reachy camera plus Realtime-2 tools.";
+
+  await startReachyVision();
+  await startRealtimeAgent();
+
+  if (state.tarryRunning) {
+    const cameraLive = Boolean(state.liveVision.stream);
+    const realtimeStarted = Boolean(state.realtime.peerConnection);
+    if (cameraLive && realtimeStarted) {
+      els.agentStatus.textContent = "Tarry is live. Speak naturally; use the typed fallback if audio is noisy.";
+    } else {
+      els.agentStatus.textContent = "Tarry partially started. Check camera and Realtime status below.";
+    }
+  }
+}
+
+function stopTarry() {
+  state.tarryRunning = false;
+  stopRealtimeAgent({ updateStatus: false });
+  stopMicAgent({ updateStatus: false });
+  stopLiveVision({ resetStatus: false });
+  setTarryControls(false);
+  els.cameraStatus.textContent = "Tarry stopped";
+  els.visionReadout.textContent = "Vision source: stopped";
+  els.agentStatus.textContent = "Tarry stopped.";
+  els.realtimeStatus.textContent = "Realtime-2 stopped.";
+  els.reaction.textContent = "Reaction: observing";
+  setFocus("center");
+}
+
+function setTarryControls(running) {
+  els.tarryButton.disabled = running;
+  els.stopTarryButton.disabled = !running;
 }
 
 function stopRealtimeAgent({ updateStatus = true } = {}) {
@@ -1215,6 +1258,10 @@ function escapeHtml(value) {
 }
 
 els.reachyButton.addEventListener("click", startReachyVision);
+els.tarryButton.addEventListener("click", () => {
+  void startTarry();
+});
+els.stopTarryButton.addEventListener("click", stopTarry);
 els.liveButton.addEventListener("click", startLiveVision);
 els.stopLiveButton.addEventListener("click", () => stopLiveVision());
 els.micButton.addEventListener("click", startMicAgent);
@@ -1236,6 +1283,7 @@ els.resetButton.addEventListener("click", reset);
 setLiveControls(false);
 setMicControls(false);
 setRealtimeControls(false);
+setTarryControls(false);
 
 loadSession().catch((error) => {
   els.cameraStatus.textContent = "Replay data error";

@@ -13,20 +13,27 @@
           <p class="eyebrow">Reachy's Brain View</p>
           <h1>Tarry turns the office into searchable memory.</h1>
           <p class="subtitle">
-            Replay mode shows the product spine: vision, audio, embodied
-            reactions, selective context capture, and retrieval.
+            Start the room layer once: Reachy camera, realtime listening,
+            embodied reactions, selective context capture, and retrieval.
           </p>
         </div>
         <div class="controls">
-          <button id="reachyButton" type="button">Start Reachy Camera</button>
-          <button id="liveButton" type="button" class="secondary">Start Laptop Vision</button>
-          <button id="stopLiveButton" type="button" class="secondary">Stop Vision</button>
-          <button id="micButton" type="button">Start Diarized Mic</button>
-          <button id="stopMicButton" type="button" class="secondary">Stop Mic</button>
-          <button id="realtimeButton" type="button">Start Realtime-2 Tools</button>
-          <button id="stopRealtimeButton" type="button" class="secondary">Stop Realtime-2</button>
+          <button id="tarryButton" type="button" class="primary-action">Start Tarry</button>
+          <button id="stopTarryButton" type="button" class="secondary">Stop</button>
           <button id="replayButton" type="button">Replay Demo</button>
           <button id="resetButton" type="button" class="secondary">Reset</button>
+          <details class="advanced-controls">
+            <summary>Advanced controls</summary>
+            <div class="advanced-control-grid">
+              <button id="reachyButton" type="button" class="secondary">Start Reachy Camera</button>
+              <button id="liveButton" type="button" class="secondary">Start Laptop Vision</button>
+              <button id="stopLiveButton" type="button" class="secondary">Stop Vision</button>
+              <button id="micButton" type="button" class="secondary">Start Diarized Mic</button>
+              <button id="stopMicButton" type="button" class="secondary">Stop Mic</button>
+              <button id="realtimeButton" type="button" class="secondary">Start Realtime-2 Tools</button>
+              <button id="stopRealtimeButton" type="button" class="secondary">Stop Realtime-2</button>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -59,7 +66,7 @@
 
         <article class="panel transcript-panel">
           <div class="panel-header">
-            <span>Live Transcript</span>
+            <span>Room Transcript</span>
             <strong id="transcriptStatus">0 lines</strong>
           </div>
           <form class="agent-input" id="agentInputForm">
@@ -73,7 +80,7 @@
 
         <article class="panel context-panel">
           <div class="panel-header">
-            <span>Context Cards</span>
+            <span>Captured Context</span>
             <strong id="contextStatus">0 extracted</strong>
           </div>
           <div class="cards" id="contextCards"></div>
@@ -89,7 +96,7 @@
 
         <article class="panel retrieval-panel">
           <div class="panel-header">
-            <span>Meeting Prep Retrieval</span>
+            <span>Ask GBrain</span>
             <strong id="retrievalStatus">ready</strong>
           </div>
           <form class="retrieval-form" id="retrievalForm">
@@ -105,6 +112,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=reachy-camera-ready-diagnostics" type="module"></script>
+    <script src="./app.js?v=start-tarry-demo-controls" type="module"></script>
   </body>
 </html>
