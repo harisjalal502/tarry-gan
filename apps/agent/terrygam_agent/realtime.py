@@ -27,6 +27,8 @@ Tool policy:
 - Prefer fewer, more intentional robot actions. If you are unsure whether a moment deserves movement, stay quiet.
 - Call save_memory only when the team states a durable decision, risk, owner, follow-up, customer/investor prep note, or important meeting context.
 - Do not call save_memory for casual chatter, noisy partial transcript, repeated facts, raw face counts, or generic room observations.
+- Use write_scratchpad for live working notes from the conversation or a provided image. The Scratchpad is temporary and can include useful rough notes.
+- When an image is provided with a request to capture the board, read visible whiteboard text and important scene context, then call write_scratchpad. Do not save it to GBrain unless the user explicitly asks to commit/save memory.
 - Call search_memory when the user asks what was previously decided or needs meeting/customer/investor prep.
 - Do not claim you can see something unless an image or explicit vision observation was provided.
 - Do not answer out loud. Prefer tool calls over text. If no tool is appropriate, stay quiet.
@@ -97,6 +99,53 @@ REALTIME_TOOLS: list[dict[str, Any]] = [
                 },
             },
             "required": ["emotion"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "type": "function",
+        "name": "write_scratchpad",
+        "description": "Write or update temporary visible working notes in Tarry's Scratchpad.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "section": {
+                    "type": "string",
+                    "enum": ["whiteboard", "conversation", "decision", "risk", "question", "follow_up", "scene"],
+                    "description": "The Scratchpad section this note belongs in.",
+                },
+                "text": {
+                    "type": "string",
+                    "description": "Concise live note to show in the Scratchpad.",
+                },
+                "source": {
+                    "type": "string",
+                    "enum": ["robot_camera", "browser_microphone", "robot_microphone", "physical_room", "manual"],
+                    "description": "Where this note came from.",
+                },
+                "confidence": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Confidence in the note.",
+                },
+            },
+            "required": ["section", "text"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "type": "function",
+        "name": "clear_scratchpad",
+        "description": "Clear the temporary Scratchpad when the user asks for a reset.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "description": "Why the Scratchpad should be cleared.",
+                },
+            },
             "additionalProperties": False,
         },
     },
@@ -251,6 +300,28 @@ def dispatch_realtime_tool(name: str, arguments: dict[str, Any] | None = None) -
             metadata={"origin": "gpt-realtime-2"},
         )
         return {"type": "memory_write", "result": result.to_json()}
+
+    if name == "write_scratchpad":
+        text = str(args.get("text") or "").strip()
+        if not text:
+            raise ValueError("write_scratchpad requires text.")
+        return {
+            "type": "scratchpad_write",
+            "result": {
+                "section": str(args.get("section") or "conversation"),
+                "text": text,
+                "source": str(args.get("source") or "physical_room"),
+                "confidence": float(args.get("confidence") or 0.8),
+            },
+        }
+
+    if name == "clear_scratchpad":
+        return {
+            "type": "scratchpad_clear",
+            "result": {
+                "reason": str(args.get("reason") or "Scratchpad cleared by tool call."),
+            },
+        }
 
     if name == "search_memory":
         query = str(args.get("query") or "").strip()

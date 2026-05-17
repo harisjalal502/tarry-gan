@@ -20,6 +20,7 @@
         <div class="controls">
           <button id="tarryButton" type="button" class="primary-action">Start Tarry</button>
           <button id="stopTarryButton" type="button" class="secondary">Stop</button>
+          <button id="captureBoardButton" type="button">Capture Whiteboard</button>
           <button id="replayButton" type="button">Replay Demo</button>
           <button id="resetButton" type="button" class="secondary">Reset</button>
           <details class="advanced-controls">
@@ -86,6 +87,16 @@
           <div class="cards" id="contextCards"></div>
         </article>
 
+        <article class="panel scratchpad-panel">
+          <div class="panel-header">
+            <span>Tarry Scratchpad</span>
+            <strong id="scratchpadStatus">waiting</strong>
+          </div>
+          <div class="scratchpad" id="scratchpad">
+            <p class="scratchpad-empty">Start Tarry, then capture the whiteboard or keep talking. Live working notes will appear here before anything is committed to GBrain.</p>
+          </div>
+        </article>
+
         <article class="panel memory-panel">
           <div class="panel-header">
             <span>Activity Log</span>
@@ -112,6 +123,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=yc-bookface-demo-controls" type="module"></script>
+    <script src="./app.js?v=scratchpad-image-capture" type="module"></script>
   </body>
 </html>

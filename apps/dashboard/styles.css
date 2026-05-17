@@ -544,6 +544,51 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.scratchpad {
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  overflow: auto;
+  padding: 16px;
+}
+
+.scratchpad-empty,
+.scratchpad-entry {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--surface-soft);
+}
+
+.scratchpad-empty {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.scratchpad-entry {
+  border-left: 4px solid var(--primary);
+  color: var(--slate);
+}
+
+.scratchpad-entry b {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: var(--charcoal);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scratchpad-meta {
+  display: block;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
 .ledger-entry {
   margin-bottom: 10px;
   border: 1px solid var(--line);

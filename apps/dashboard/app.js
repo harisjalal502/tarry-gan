@@ -21,6 +21,7 @@ const state = {
   transcriptCount: 0,
   contextCount: 0,
   memoryCount: 0,
+  scratchpadCount: 0,
   tarryRunning: false,
   liveVision: {
     stream: null,
@@ -56,6 +57,7 @@ const state = {
 const els = {
   tarryButton: document.querySelector("#tarryButton"),
   stopTarryButton: document.querySelector("#stopTarryButton"),
+  captureBoardButton: document.querySelector("#captureBoardButton"),
   reachyButton: document.querySelector("#reachyButton"),
   liveButton: document.querySelector("#liveButton"),
   stopLiveButton: document.querySelector("#stopLiveButton"),
@@ -80,9 +82,11 @@ const els = {
   visionReadout: document.querySelector("#visionReadout"),
   transcriptStatus: document.querySelector("#transcriptStatus"),
   contextStatus: document.querySelector("#contextStatus"),
+  scratchpadStatus: document.querySelector("#scratchpadStatus"),
   memoryStatus: document.querySelector("#memoryStatus"),
   transcript: document.querySelector("#transcript"),
   contextCards: document.querySelector("#contextCards"),
+  scratchpad: document.querySelector("#scratchpad"),
   memoryLedger: document.querySelector("#memoryLedger"),
   answer: document.querySelector("#answer"),
   faceA: document.querySelector("#faceA"),
@@ -115,13 +119,16 @@ function reset() {
   state.transcriptCount = 0;
   state.contextCount = 0;
   state.memoryCount = 0;
+  state.scratchpadCount = 0;
   state.agent.lastEventIds = new Set();
   els.transcript.innerHTML = "";
   els.contextCards.innerHTML = "";
+  resetScratchpad();
   els.memoryLedger.innerHTML = "";
   els.cameraStatus.textContent = "Replay idle";
   els.transcriptStatus.textContent = "0 lines";
   els.contextStatus.textContent = "0 extracted";
+  els.scratchpadStatus.textContent = "waiting";
   els.memoryStatus.textContent = "idle";
   els.agentStatus.textContent = "Agent service idle";
   els.realtimeStatus.textContent = "Realtime-2 tools idle";
@@ -360,6 +367,7 @@ async function runRealtimeToolCall(functionCall) {
     throw new Error(payload.error || `Realtime tool returned ${response.status}`);
   }
 
+  applyRealtimeToolOutput(payload);
   addMemoryWrite({
     payload: {
       type: "realtime_tool_call",
@@ -368,6 +376,17 @@ async function runRealtimeToolCall(functionCall) {
     },
   });
   sendRealtimeToolOutput(payload.call_id, payload.output);
+}
+
+function applyRealtimeToolOutput(payload) {
+  if (payload.output?.type === "scratchpad_write") {
+    addScratchpadEntry(payload.output.result);
+    return;
+  }
+
+  if (payload.output?.type === "scratchpad_clear") {
+    resetScratchpad(payload.output.result?.reason);
+  }
 }
 
 function sendRealtimeToolOutput(callId, output) {
@@ -383,6 +402,61 @@ function sendRealtimeToolOutput(callId, output) {
     },
   }));
   channel.send(JSON.stringify({ type: "response.create" }));
+}
+
+function captureWhiteboardToScratchpad() {
+  const channel = state.realtime.dataChannel;
+  if (!channel || channel.readyState !== "open") {
+    els.scratchpadStatus.textContent = "start Tarry first";
+    return;
+  }
+
+  const dataUrl = captureCurrentVideoFrame();
+  if (!dataUrl) {
+    els.scratchpadStatus.textContent = "camera frame unavailable";
+    return;
+  }
+
+  els.scratchpadStatus.textContent = "sending board image";
+  channel.send(JSON.stringify({
+    type: "conversation.item.create",
+    item: {
+      type: "message",
+      role: "user",
+      content: [
+        {
+          type: "input_text",
+          text: (
+            "Capture the whiteboard and visible room context from this image. "
+            + "Call write_scratchpad with concise notes. Use section whiteboard for board text, "
+            + "scene for visible context, and conversation only if the image clearly supports it. "
+            + "Do not call save_memory yet."
+          ),
+        },
+        {
+          type: "input_image",
+          image_url: dataUrl,
+          detail: "high",
+        },
+      ],
+    },
+  }));
+  channel.send(JSON.stringify({ type: "response.create" }));
+}
+
+function captureCurrentVideoFrame() {
+  const video = els.cameraVideo;
+  if (!video.srcObject || video.videoWidth <= 0 || video.videoHeight <= 0) {
+    return "";
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const context = canvas.getContext("2d");
+  if (!context) return "";
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.82);
 }
 
 async function startMicAgent() {
@@ -1206,6 +1280,33 @@ function addContextCard(event) {
   els.contextCards.append(card);
 }
 
+function addScratchpadEntry(entry) {
+  state.scratchpadCount += 1;
+  els.scratchpadStatus.textContent = `${state.scratchpadCount} notes`;
+  els.scratchpad.querySelector(".scratchpad-empty")?.remove();
+
+  const note = document.createElement("div");
+  note.className = "scratchpad-entry";
+  const confidence = typeof entry.confidence === "number"
+    ? ` · ${Math.round(entry.confidence * 100)}%`
+    : "";
+  note.innerHTML = `
+    <b>${escapeHtml(entry.section ?? "note")}</b>
+    <div>${escapeHtml(entry.text ?? "")}</div>
+    <span class="scratchpad-meta">${escapeHtml(entry.source ?? "physical_room")}${escapeHtml(confidence)}</span>
+  `;
+  els.scratchpad.append(note);
+  note.scrollIntoView({ block: "end", behavior: "smooth" });
+}
+
+function resetScratchpad(reason = "") {
+  state.scratchpadCount = 0;
+  els.scratchpadStatus.textContent = reason ? "cleared" : "waiting";
+  els.scratchpad.innerHTML = `
+    <p class="scratchpad-empty">${escapeHtml(reason || "Start Tarry, then capture the whiteboard or keep talking. Live working notes will appear here before anything is committed to GBrain.")}</p>
+  `;
+}
+
 function addMemoryWrite(event) {
   state.memoryCount += 1;
   els.memoryStatus.textContent = `${state.memoryCount} events`;
@@ -1234,6 +1335,12 @@ function formatLedgerPayload(payload) {
   if (payload.type === "realtime_tool_call") {
     const outputType = payload.output?.type ?? "tool";
     const result = payload.output?.result;
+    if (outputType === "scratchpad_write") {
+      return `Scratchpad <- ${result?.section ?? "note"}: ${result?.text ?? ""}`;
+    }
+    if (outputType === "scratchpad_clear") {
+      return `Scratchpad cleared: ${result?.reason ?? "reset"}`;
+    }
     if (outputType === "robot_action_blocked") {
       return `Realtime-2 ${payload.name} blocked: ${result?.message ?? "safe demo mode"}`;
     }
@@ -1262,6 +1369,7 @@ els.tarryButton.addEventListener("click", () => {
   void startTarry();
 });
 els.stopTarryButton.addEventListener("click", stopTarry);
+els.captureBoardButton.addEventListener("click", captureWhiteboardToScratchpad);
 els.liveButton.addEventListener("click", startLiveVision);
 els.stopLiveButton.addEventListener("click", () => stopLiveVision());
 els.micButton.addEventListener("click", startMicAgent);
