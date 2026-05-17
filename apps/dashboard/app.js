@@ -12,6 +12,7 @@ const REALTIME_CLIENT_SECRET_API_URL = "http://127.0.0.1:8787/realtime/client-se
 const REALTIME_TOOL_CALL_API_URL = "http://127.0.0.1:8787/realtime/tool-call";
 const OPENAI_REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 const AUDIO_SEGMENT_MS = 8000;
+const CAMERA_READY_TIMEOUT_MS = 20000;
 const SHOW_AGENT_TOOL_INTENTS = false;
 
 const state = {
@@ -690,10 +691,12 @@ async function startReachyVision() {
 async function attachVisionStream({ stream, sourceName, waitingText }) {
   state.liveVision.stream = stream;
   state.liveVision.sourceName = sourceName;
+  els.cameraVideo.muted = true;
+  els.cameraVideo.playsInline = true;
   els.cameraVideo.srcObject = stream;
   els.cameraStage.classList.add("live");
-  els.visionReadout.textContent = waitingText;
-  await waitForVideoReady(els.cameraVideo);
+  els.visionReadout.textContent = `${waitingText} | ${describeMediaStream(stream)}`;
+  await waitForVideoReady(els.cameraVideo, stream);
 }
 
 async function startDetectorLoop(sourceName) {
@@ -757,16 +760,27 @@ function setLiveControls(running) {
   els.stopLiveButton.disabled = !running;
 }
 
-function waitForVideoReady(video) {
+function waitForVideoReady(video, stream) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
-      reject(new Error("Camera stream did not become ready in time."));
-    }, 8000);
+      reject(new Error(`Camera stream did not become ready in time. ${describeMediaStream(stream)}`));
+    }, CAMERA_READY_TIMEOUT_MS);
 
     function done() {
+      if (video.videoWidth <= 0 || video.videoHeight <= 0) return;
       clearTimeout(timeout);
-      video.removeEventListener("loadedmetadata", done);
+      cleanup();
       video.play().then(resolve).catch(reject);
+    }
+
+    function cleanup() {
+      video.removeEventListener("loadedmetadata", done);
+      video.removeEventListener("loadeddata", done);
+      video.removeEventListener("canplay", done);
+      video.removeEventListener("resize", done);
+      for (const track of stream?.getVideoTracks?.() ?? []) {
+        track.removeEventListener?.("unmute", done);
+      }
     }
 
     if (video.readyState >= HTMLMediaElement.HAVE_METADATA && video.videoWidth > 0) {
@@ -775,7 +789,22 @@ function waitForVideoReady(video) {
     }
 
     video.addEventListener("loadedmetadata", done, { once: true });
+    video.addEventListener("loadeddata", done, { once: true });
+    video.addEventListener("canplay", done, { once: true });
+    video.addEventListener("resize", done, { once: true });
+    for (const track of stream?.getVideoTracks?.() ?? []) {
+      track.addEventListener?.("unmute", done, { once: true });
+    }
   });
+}
+
+function describeMediaStream(stream) {
+  if (!stream) return "No MediaStream received.";
+  const tracks = stream.getTracks();
+  if (tracks.length === 0) return "MediaStream has no tracks.";
+  return tracks
+    .map((track) => `${track.kind}:${track.readyState}${track.muted ? ":muted" : ""}`)
+    .join(", ");
 }
 
 async function createFaceDetector() {
