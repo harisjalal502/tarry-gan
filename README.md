@@ -15,7 +15,7 @@ It runs on Reachy Mini, listens through Realtime, sees through the robot camera,
 ### Interface
 
 <p>
-  <img src="docs/assets/gallery/tarry-at-table.jpg" width="100%" alt="Tarry interface dashboard view" />
+  <img src="docs/assets/gallery/tarry-interface.png" width="100%" alt="Tarry interface analyzing a whiteboard through the robot camera" />
 </p>
 
 ### Tarry At YC
