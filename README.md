@@ -1,76 +1,100 @@
-# Tarry Office Context Layer
+# Tarry
 
-Tarry is a Reachy Mini-powered physical context layer for small teams. Digital tools capture Slack, docs, GitHub, and calendar. Tarry captures what normally disappears from the office: debates, whiteboard changes, customer-call prep, verbal decisions, room signals, and physical context.
+Tarry is a physical context layer for startup offices.
 
-The hackathon goal is a compelling under-two-minute demo where Reachy Mini listens, looks around, tracks people/whiteboards, stores structured context through GBrain, and later helps the team prepare using memories from the physical room.
+Digital tools already remember Slack, Linear, GitHub, docs, and calendars. Tarry remembers what happens in the room: whiteboards, debates, decisions, risks, and the messy physical context that usually disappears.
 
-## Demo Thesis
+It runs on Reachy Mini, listens through Realtime, sees through the robot camera, writes a live Scratchpad, and commits durable memory to GBrain.
 
-Small teams lose their most important context in the room.
+## Gallery
 
-Tarry turns the office into searchable memory.
+<p>
+  <img src="docs/assets/gallery/tarry-at-yc-hackathon.jpg" width="100%" alt="Tarry at the GStack x GBrain Hackathon sign" />
+</p>
 
-## MVP Loop
+### Tarry At YC
 
-1. A small team discusses a live decision in the office.
-2. Reachy Mini listens, looks, and reacts to the room.
-3. The dashboard shows Reachy's brain: camera view, face boxes, room/context detections, transcript, and extracted decisions.
-4. The app writes structured physical-context events into the memory layer.
-5. Later, a teammate asks for investor/customer prep and Tarry retrieves the relevant context through GBrain.
+<p>
+  <img src="docs/assets/gallery/tarry-with-hackathon-team.jpg" width="32%" alt="Tarry with the hackathon team" />
+  <img src="docs/assets/gallery/tarry-team-table-wide.jpg" width="32%" alt="Tarry with team members at the table" />
+  <img src="docs/assets/gallery/tarry-team-portrait.jpg" width="32%" alt="Tarry team portrait" />
+</p>
 
-## Physical Layers
+### Tarry With Robot Friends
 
-Tarry adds three physical layers that normal digital context tools miss:
+<p>
+  <img src="docs/assets/gallery/tarry-office-companion.jpg" width="49%" alt="Tarry beside another robot in the workspace" />
+  <img src="docs/assets/gallery/tarry-with-builders.jpg" width="49%" alt="Tarry with builders and robot friends in the office" />
+</p>
 
-- Vision: images, people, whiteboards, screens, objects, and spatial attention.
-- Audio: spoken discussion, interruptions, emphasis, and exact phrasing.
-- Embodiment: gaze, head movement, reactions, and ambient feedback that make the capture layer legible in the room.
+### Office Companion
 
-## Repo Structure
+<p>
+  <img src="docs/assets/gallery/tarry-at-table.jpg" width="32%" alt="Tarry sitting on a workspace table" />
+  <img src="docs/assets/gallery/tarry-founder-selfie.jpg" width="32%" alt="Founder selfie with Tarry" />
+  <img src="docs/assets/gallery/tarry-demo-room.jpg" width="32%" alt="Tarry in the demo room" />
+</p>
 
-- `docs/product.md` defines the product story, users, and demo promise.
-- `docs/demo-script.md` defines the hackathon video/demo spine.
-- `docs/architecture.md` defines the system boundaries and component interfaces.
-- `docs/agent-layer.md` defines the current and intended agent/tool layer.
-- `docs/modes.md` defines operating modes, technical difficulty, and fallback paths.
-- `docs/agent-platforms.md` explains Hermes/OpenClaw and why they are optional for now.
-- `docs/gbrain-source-research.md` captures source-backed GBrain findings from a local clone.
-- `docs/transcription-speaker-identity.md` defines the transcript, diarization, and speaker identity plan.
-- `docs/retrieval-embeddings.md` records the ZeroEntropy embedding decision for GBrain.
-- `docs/backlog.md` defines the next build steps in priority order.
-- `AGENTS.md` gives future coding agents the project rules and context.
+### Physical Context
 
-## Current Build State
+<p>
+  <img src="docs/assets/gallery/whiteboard-physical-context.jpg" width="49%" alt="Whiteboard with physical and digital context diagram" />
+  <img src="docs/assets/gallery/video-whiteboard-discussion-3.jpg" width="49%" alt="Founders discussing a whiteboard with Tarry nearby" />
+</p>
 
-This repo is intentionally starting clean. We are carrying forward the learnings from the previous Reachy Mini prototype, especially:
+### Demo Room
 
-- Reuse the Reachy Mini desktop app/local daemon/proxy where possible instead of rebuilding media infrastructure.
-- Treat GStack as the agent workflow/dev layer.
-- Treat GBrain as the memory/search layer.
-- Keep a demo-safe fallback mode so the hackathon does not depend on perfect robot/network behavior.
+<p>
+  <img src="docs/assets/gallery/tarry-stage-mic.jpg" width="32%" alt="Tarry near a demo microphone" />
+  <img src="docs/assets/gallery/tarry-projector-room.jpg" width="32%" alt="Tarry near a projector room setup" />
+  <img src="docs/assets/gallery/video-whiteboard-discussion-1.jpg" width="32%" alt="Whiteboard discussion clip thumbnail one" />
+</p>
 
-## Local Testing
+## Demo Loop
 
-Run the replay dashboard:
+1. Two founders debate around a whiteboard.
+2. Tarry watches and listens.
+3. Someone says, "Tarry, capture the whiteboard."
+4. Tarry scans the board and writes live notes.
+5. The team asks a memory question later.
+6. GBrain retrieves the physical-room context.
+
+## What It Does
+
+- Sees the room through Reachy Mini.
+- Listens to in-person team conversations.
+- Reads messy whiteboards and takes its best guess when the image is blurry.
+- Writes live working notes into a Scratchpad.
+- Saves important context into GBrain for later retrieval.
+- Lets the team ask, "What did we decide?" after the meeting is over.
+
+## Stack
+
+- Reachy Mini for embodiment and robot camera.
+- OpenAI Realtime for live audio, image input, and tool calls.
+- Tarry Scratchpad for live working notes.
+- GBrain for durable memory and retrieval.
+- Local dashboard for the demo surface.
+
+## Run
 
 ```bash
+npm run agent:serve
 npm run dashboard
 ```
 
-In the dashboard, click `Start Laptop Vision` to open the browser camera and run the MediaPipe face detector. Click `Start Reachy Camera` to try the Reachy Mini desktop app's local WebRTC proxy. Live detections draw bounding boxes and emit debounced `vision_observation` entries into the dashboard memory ledger. The next adapter swap is making the Reachy camera path reliable whenever the robot daemon is online.
+Open:
 
-Inspect the physical-context pipeline:
-
-```bash
-npm run pipeline:inspect
+```text
+http://127.0.0.1:5173/
 ```
 
-Test GBrain page write + retrieval:
+Then click `Start Tarry` and say:
 
-```bash
-npm run gbrain:test
+```text
+Tarry, capture the whiteboard.
 ```
 
-If `ZEROENTROPY_API_KEY` is set, the GBrain test also verifies semantic retrieval. Without it, the test verifies source registration, page read, and keyword search.
+## Status
 
-This repo uses a project-local GBrain home at `.gbrain-home/` so hackathon retrieval settings do not mutate your global `~/.gbrain` database.
+The current demo path is focused on camera plus Scratchpad. The main screen intentionally stays simple: Robot Camera on the left, Tarry Scratchpad on the right, with debug panels hidden behind a toggle.
