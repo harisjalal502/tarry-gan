@@ -12,6 +12,12 @@ It runs on Reachy Mini, listens through Realtime, sees through the robot camera,
   <img src="docs/assets/gallery/tarry-at-yc-hackathon.jpg" width="100%" alt="Tarry at the GStack x GBrain Hackathon sign" />
 </p>
 
+### Interface
+
+<p>
+  <img src="docs/assets/gallery/tarry-at-table.jpg" width="100%" alt="Tarry interface dashboard view" />
+</p>
+
 ### Tarry At YC
 
 <p>
@@ -30,7 +36,6 @@ It runs on Reachy Mini, listens through Realtime, sees through the robot camera,
 ### Office Companion
 
 <p>
-  <img src="docs/assets/gallery/tarry-at-table.jpg" width="32%" alt="Tarry sitting on a workspace table" />
   <img src="docs/assets/gallery/tarry-founder-selfie.jpg" width="32%" alt="Founder selfie with Tarry" />
   <img src="docs/assets/gallery/tarry-demo-room.jpg" width="32%" alt="Tarry in the demo room" />
 </p>
