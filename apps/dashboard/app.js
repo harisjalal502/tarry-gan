@@ -14,6 +14,7 @@ const OPENAI_REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 const AUDIO_SEGMENT_MS = 8000;
 const CAMERA_READY_TIMEOUT_MS = 20000;
 const SHOW_AGENT_TOOL_INTENTS = false;
+const ENABLE_FACE_DETECTION = true;
 const DEFAULT_AGENT_ANSWER = "Ask a question and Tarry will query GBrain-backed room memory.";
 
 const state = {
@@ -810,9 +811,7 @@ async function startLiveVision() {
       waitingText: "Vision source: browser camera | waiting for detector",
     });
 
-    els.cameraStatus.textContent = "Loading face detector";
-    els.visionReadout.textContent = "Downloading MediaPipe face detector";
-    await startDetectorLoop("browser camera");
+    startOptionalDetectorLoop("browser camera");
   } catch (error) {
     stopLiveVision({ resetStatus: false });
     els.cameraStatus.textContent = "Live vision error";
@@ -841,9 +840,7 @@ async function startReachyVision() {
       waitingText: `Vision source: Reachy camera | connected to ${host}:${REACHY_SIGNALING_PORT}`,
     });
 
-    els.cameraStatus.textContent = "Loading face detector";
-    els.visionReadout.textContent = "Reachy camera connected | downloading MediaPipe face detector";
-    await startDetectorLoop(`Reachy camera via ${host}`);
+    startOptionalDetectorLoop(`Reachy camera via ${host}`);
   } catch (error) {
     stopLiveVision({ resetStatus: false });
     els.cameraStatus.textContent = "Reachy camera error";
@@ -862,6 +859,21 @@ async function attachVisionStream({ stream, sourceName, waitingText }) {
   els.cameraStage.classList.add("live");
   els.visionReadout.textContent = `${waitingText} | ${describeMediaStream(stream)}`;
   await waitForVideoReady(els.cameraVideo, stream);
+}
+
+function startOptionalDetectorLoop(sourceName) {
+  if (!ENABLE_FACE_DETECTION) {
+    state.liveVision.sourceName = sourceName;
+    state.liveVision.running = false;
+    els.faceOverlay.innerHTML = "";
+    els.cameraStatus.textContent = "Live camera";
+    els.visionReadout.textContent = `Vision source: ${sourceName} | face detection off`;
+    els.reaction.textContent = "Reaction: watching for board capture";
+    setFocus("center");
+    return;
+  }
+
+  void startDetectorLoop(sourceName);
 }
 
 async function startDetectorLoop(sourceName) {
